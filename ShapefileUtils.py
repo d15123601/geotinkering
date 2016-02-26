@@ -3,7 +3,6 @@ import pyproj
 
 
 def get_layer_spatialref(src):
-    print(src)
     layer = src.GetLayer(0)
     spatialRef = layer.GetSpatialRef()
     return spatialRef
@@ -46,6 +45,7 @@ def reproj_shapefile(sf, dst_proj):
     dstproj.ImportFromEPSG(dst_proj)
     transform = osr.CoordinateTransformation(srcproj, dstproj)
     projected_features = [doProjection(feature, transform) for feature in layer]
+    print[projected_features]
     #TODO i need to build a function to create a shapefile from the above list
 
 
