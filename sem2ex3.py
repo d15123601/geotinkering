@@ -11,8 +11,8 @@ Take an existing CSV (comma-separated values) text file which contains data whic
 Create a new schema which takes some or all of the elements in each row and creates a new shapefile with polygon geometries representing a buffer around each point.
 Create yet another shapefile to merge the buffers into a single multipolygon geometry.
 """
-
-import shapely
+from shapely.geometry import MultiPolygon, mapping
+from fiona import collection
 import os
 import csv
 
@@ -20,7 +20,13 @@ csv.field_size_limit(500 * 1024 * 1024)
 
 path = r'C:\Users\admin\Google Drive\College\RepositoryDataDump\csv_files'
 file = 'ctygeom.csv'
-with open(os.path.join(path,file),'r') as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        print(row)
+
+
+schema = { 'geometry': 'Point', 'properties': { 'name': 'str' } }
+
+with collection("some.shp", "w", "ESRI Shapefile", schema) as output:
+    with open(os.path.join(path,file),'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            county = MultiPolygon(row['geom'])
+            output.write({'properties': {'name': row['countyname']},'geometry': mapping(county)})
