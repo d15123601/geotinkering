@@ -1,3 +1,4 @@
+
 def get_data_from_postgres(conn, qry):
     """
     A one-line definition of what the function does
@@ -51,3 +52,12 @@ def get_data_from_geoserver(geo_host, resource):
     except Exception as e:
         print(e)
         return False
+
+def proj_point(crs_from, crs_to, x, y):
+
+    from pyproj import transform
+    from shapely.geometry import Point
+
+    a, b = pyproj.transform(crs_from, crs_to, x, y)
+    point = Point(a, b)
+    return point

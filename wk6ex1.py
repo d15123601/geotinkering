@@ -3,7 +3,7 @@ This is for taking a json file and putting it into a shapefile.
 It uses the generic functions written by mfoley.
 """
 
-from Utils import get_data_from_geoserver
+from geo_utils import get_data_from_geoserver
 import json
 import six
 from fiona import collection
