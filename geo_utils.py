@@ -27,12 +27,13 @@ def get_data_from_postgres(conn, qry):
         print(e)
         return False
 
+
 def get_data_from_geoserver(geo_host, resource):
     """
     Gets a GeoJSON representation of any ressource published by any Geoserver
     :param geo_host: The name of the host geoserver including the port number if necessary
     :param resource: The name of the required resource in the format <workspace>:<resource name> e.g. cso:counties
-    :return: The resource in GeoJSON formay
+    :return: The resource in GeoJSON format
     """
     import httplib2
     import json

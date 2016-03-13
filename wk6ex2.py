@@ -2,7 +2,6 @@ import geo_utils
 from fiona import collection
 from shapely import wkt, geometry
 import csv
-import geo_utils
 import os
 
 """
@@ -34,7 +33,6 @@ with open("ltgeom.csv",'r') as f:
 
 path = r"C:\Users\admin\Google Drive\College\RepositoryDataDump\IrelandShapeFiles"
 with collection(os.path.join(path, 'natural.shp'),'r') as ip:
-     = input.schema.copy()
     with collection('rivers.shp','w') as op:
         for feature in ip:
             if (feature['properties']['type']) == "water":
