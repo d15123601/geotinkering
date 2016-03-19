@@ -1,9 +1,10 @@
 """
-This code creates a dict for each county of the towns in each county, using shapely function 'contains'
+This code creates a dict for each county of the populated towns in each county, using shapely function 'contains'
 to establish the relationship.
+It then finds the centroid of the county and determines which of the towns is nearest to it, and stores it in a dictionary.
 """
 
-from geo_utils import get_data_from_geoserver
+from geo_utils import get_data_from_geoserver, proj_point
 from fiona import collection
 from fiona.crs import from_epsg
 import fiona
@@ -48,5 +49,9 @@ for k, v in countytowns.items():
             county_town[k] = min(zip(dist.values(), dist.keys()))[1]
         else: county_town[k] = v[0][0]
 
+crs_from = pyproj.Proj("+init=EPSG:4326")
+crs_to = pyproj.Proj("+init=EPSG:")
 
+for k, v in countycents.items():
+    proj_point()
 
