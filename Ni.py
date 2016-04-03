@@ -30,6 +30,7 @@ PARAMS2 = {
     "filter_values": []
 }
 
-#places1 = get_geojson(PARAMS1)
-places2 = get_geojson(PARAMS2)
-print('hi')
+polygons = get_geojson(PARAMS1)
+points = get_geojson(PARAMS2)
+
+
