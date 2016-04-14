@@ -1,3 +1,16 @@
+def pick_geojson(obj, getitem):
+    """
+    :param geojson_obj: This item is the geojson object for which we want to access
+                        the data for.
+    :param getitem: This is the item which we are looking for within the geojson object
+    :return: The return will be a list of the object(s) we are looking for.
+    """
+    try:
+        return obj[getitem]
+    except KeyError:
+        return 'No such item exists'
+    except TypeError:
+        return 'Data passed is not a dictionary'
 
 def get_geojson(params):
     """

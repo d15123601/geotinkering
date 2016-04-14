@@ -34,6 +34,8 @@ from shapely.ops import cascaded_union
 import collections
 import os
 import json
+import pygeoj
+
 
 #   Variable assignment or initialisation
 json_fldr = r"C:\Users\mickle\Google Drive\College\Python\MarkFoley"
@@ -51,8 +53,12 @@ with open(os.path.join(json_fldr, "geonames_pop.txt"),'r') as f2:
 cty_polygons = json.loads(cty_str)
 places_pts = json.loads(pop_str)
 
-for county in cty_polygons['features']:
-    geom = geometry.MultiPolygon(asShape(county['geometry']))
+cty = pygeoj.load(None, cty_polygons)
+places = pygeoj.load(None, places_pts)
+
+
+for f in cty:
+    geom = geometry.MultiPolygon(asShape(f.geometry))
     poly_geoms.append(geom)
 
 merged_counties = cascaded_union(poly_geoms)
@@ -60,22 +66,16 @@ merged_counties = cascaded_union(poly_geoms)
 #   Filter the point data so that we only pick pts with a population > 8000,
 #   add the geoms to a list
 
-for place in places_pts['features']:
-    if place['properties']['population'] > 8000:
-        geom = geometry.Point(asShape(place['geometry']))
+for place in places:
+    if place.properties['population'] == 0:
+        geom = geometry.Point(asShape(place.geometry))
         pt_geoms.append(geom)
+
+print(len(pt_geoms))
+print(len(poly_geoms))
 
 #   Find out how many points lie within the unioned polygon
 
 
-
-print("The number of places with pops > 8000 is {}".format(len(pt_geoms)))
-
-
-
-
-
-print(merged_counties.area)
-print(merged_counties.centroid)
 
 print('hi')
