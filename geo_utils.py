@@ -1,3 +1,15 @@
+def shape_maker(geojson_obj):
+    from shapely import geometry
+    crs = geojson_obj['crs']
+    bbox = geojson_obj['bbox']
+    features = []
+    for f in geojson_obj['features']:
+        g = geometry.asShape(f['geometry'])
+        p = f['properties']
+        features.append((g,p))
+    op_dict = {'crs':crs, 'bbox':bbox,'features':features}
+    return op_dict
+
 def pick_geojson(obj, getitem):
     """
     :param geojson_obj: This item is the geojson object for which we want to access
@@ -11,6 +23,7 @@ def pick_geojson(obj, getitem):
         return 'No such item exists'
     except TypeError:
         return 'Data passed is not a dictionary'
+
 
 def get_geojson(params):
     """
