@@ -3,7 +3,7 @@ from tkinter import ttk
 
 
 class myGUI:
-    def __init__(self, master):
+    def __init__(self, master, input_datasets):
         # variables
         self.dataset_ref = ""
         self.ops_output = {}
@@ -11,8 +11,8 @@ class myGUI:
         self.dialog_text = StringVar()
         self.dialog_text.set("Messages will display here")
 
-        self.cb_list = ['Tipperary', 'Mayo']
-        self.dataset_list = ['Counties', 'Towns']
+        self.dataset_list = [ds for ds in input_datasets]
+        self.cb_list = ['a','b']
 
         self.ops_subject = StringVar()
         self.ops_subject.set('Tipperary\n Mayo')
@@ -134,5 +134,8 @@ class myGUI:
         pass
 
 root = Tk()
-myGUI(root)
+counties = ['Mayo', 'Laois']
+towns = ['Birr', 'Cong']
+datasets = [counties, towns]
+myGUI(root, datasets)
 root.mainloop()
