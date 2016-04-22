@@ -1,4 +1,10 @@
 def shape_maker(geojson_obj):
+    """
+    This function takes a geojson object and returns the pertinent data
+    for this application.
+    :param geojson_obj:
+    :return: dict containing crs, bbox and shapely features
+    """
     from shapely import geometry
     crs = geojson_obj['crs']
     bbox = geojson_obj['bbox']

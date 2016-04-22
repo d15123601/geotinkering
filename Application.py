@@ -21,6 +21,8 @@
 """
 def main():
 
+    import cartopy
+    import matplotlib.pyplot as plt
     from geo_utils import get_data_from_geoserver, geocode_item
     from geo_utils import shape_maker
     from fiona import collection
@@ -34,6 +36,7 @@ def main():
     import collections
     import os
     import json
+    from descartes import PolygonPatch
 
     #   Variable assignment or initialisation
     countycents = collections.defaultdict(str)
@@ -52,22 +55,58 @@ def main():
 
     counties = shape_maker(cty_polygons)
     towns = shape_maker(places_pts)
+    geoms = [towns['features'][0], counties['features'][0]]
 
     print(len(counties['features']))
     print(counties['crs'])
     print(len(towns['features']))
     print(towns['crs'])
 
-# def display_geometry(geom, name, crs):
-#     """
-#     :param geom: a collection of shapely geometries to be displayed
-#     :param name: the name of the collection of geometries
-#     :param crs: the crs of the input geometries
-#     :return: outputs a matplotlib render of the geometries
-#     """
-#     from cartopy import feature
+    #map_crs = cartopy.crs.TransverseMercator()
+    #data_crs = cartopy.crs.TransverseMercator()
+    ax = plt.axes([counties['bbox']])
+    patch1 = PolygonPatch(geoms[1][0])
+    ax.add_patch(patch1)
+    plt.show()
+
+
+    # c_counties = cartopy.feature.ShapelyFeature(geoms[1], data_crs)
+    # c_towns = cartopy.feature.ShapelyFeature(geoms[0], data_crs)
+    # ax.set_extent([-13, -5, 49, 56])
+    # ax.add_feature(cartopy.feature.OCEAN)
+    # ax.add_geometries(c_counties)
+    # plt.show()
+
+
 #
-#     features = feature.ShapelyFeature(geom, crs)
+# def display_geometry(obj):
+#     """
+#     :param obj: a collection of shapely geometries to be displayed
+#                 with the following data in the object
+#     name: the name of the collection of geometries
+#     crs: the crs of the input geometries
+#     features: geom and properties of each shape
+#     """
+#     from cartopy import feature, crs
+#     import pyproj
+#     import matplotlib.pyplot as plot
+#
+#     bbox = obj['bbox']
+#     patches = []
+#     irish_grid = pyproj.Proj("+init=EPSG:29902")
+#     for f in obj['features']:
+#         patch = feature.ShapelyFeature(f[0], irish_grid)
+#         patches.append(patch)
+#     ax = plot.axes(projection = crs.TransverseMercator)
+#     ax.coastlines()
+#
+#     for p in patches:
+#         plot.plot(p)
+
+
+
+
+
 
 if __name__ == '__main__':
     main()

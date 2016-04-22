@@ -133,9 +133,14 @@ class myGUI:
     def line_join(self):
         pass
 
-root = Tk()
-counties = ['Mayo', 'Laois']
-towns = ['Birr', 'Cong']
-datasets = [counties, towns]
-myGUI(root, datasets)
-root.mainloop()
+
+def main():
+    root = Tk()
+    counties = ['Mayo', 'Laois']
+    towns = ['Birr', 'Cong']
+    datasets = [counties, towns]
+    myGUI(root, datasets)
+    root.mainloop()
+
+if __name__ == '__main__':
+    main()

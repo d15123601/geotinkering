@@ -1,4 +1,16 @@
+import cartopy
 import matplotlib.pyplot as plt
-plt.plot([1, 2, 3, 4], [1, 4, 9, 16])
-plt.ylabel('some numbers')
-plt.show()
+
+
+def main():
+
+    ax = plt.axes([0,0,1,1], projection=cartopy.crs.TransverseMercator())
+
+    ax.set_extent([-20, 0, 50, 55])
+    ax.add_feature(cartopy.feature.COASTLINE)
+    ax.add_geoms(geoms)
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
