@@ -1,3 +1,50 @@
+def plot_shapes(shapes):
+    """
+    Here we plot shapes passed in our custom geojson object
+    The plotting is done with descartes
+    :param shapes: dict containing crs, bbox and shapely features
+    :return: plots the required shape
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.collections import PatchCollection
+    from mpl_toolkits.basemap import Basemap
+    from shapely.ops import cascaded_union
+    from descartes import PolygonPatch
+    ctys = []
+    for geom in shapes['features']:
+        gtry = cascaded_union(geom[0]) #we need to dissolve any nested rings
+        name = geom[1]['countyname']
+        ctys.append((gtry,name))
+
+    patches = []
+    for cty in ctys:
+        if cty[0].geom_type == 'Polygon':
+            patches.append(PolygonPatch(cty[0]))
+        elif cty[0].geom_type == 'MultiPolygon':
+            for poly in cty[0]:
+                patches.append(PolygonPatch(poly))
+
+#TODO Investigate the projection and bounding of this map
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    # llcrnrlat,llcrnrlon,urcrnrlat,urcrnrlon
+    # are the lat/lon values of the lower left and upper right corners
+    # of the map.
+    # resolution = 'i' means use intermediate resolution coastlines.
+    # lon_0, lat_0 are the central longitude and latitude of the projection.
+    m = Basemap(llcrnrlon=-11.5,llcrnrlat=51.0,urcrnrlon=-5.0,urcrnrlat=56.0,
+                resolution='i',projection='tmerc',lon_0=-7.36,lat_0=53.0, epsg = 29902)
+    # can get the identical map this way (by specifying width and
+    # height instead of lat/lon corners)
+    #m = Basemap(width=894887,height=1116766,\
+    #            resolution='i',projection='tmerc',lon_0=-4.36,lat_0=54.7)
+    #m.drawcoastlines()
+    #m.fillcontinents(color='coral',lake_color='aqua')
+    # draw parallels and meridians.
+    m.drawmapboundary(fill_color='aqua')
+    ax.add_collection(PatchCollection(patches))
+    plt.show()
+
 def shape_maker(geojson_obj):
     """
     This function takes a geojson object and returns the pertinent data

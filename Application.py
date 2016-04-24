@@ -55,7 +55,7 @@ def main():
 
     counties = shape_maker(cty_polygons)
     towns = shape_maker(places_pts)
-    geoms = [towns['features'][0], counties['features'][0]]
+
 
     print(len(counties['features']))
     print(counties['crs'])
@@ -70,38 +70,7 @@ def main():
     plt.show()
 
 
-    # c_counties = cartopy.feature.ShapelyFeature(geoms[1], data_crs)
-    # c_towns = cartopy.feature.ShapelyFeature(geoms[0], data_crs)
-    # ax.set_extent([-13, -5, 49, 56])
-    # ax.add_feature(cartopy.feature.OCEAN)
-    # ax.add_geometries(c_counties)
-    # plt.show()
 
-
-#
-# def display_geometry(obj):
-#     """
-#     :param obj: a collection of shapely geometries to be displayed
-#                 with the following data in the object
-#     name: the name of the collection of geometries
-#     crs: the crs of the input geometries
-#     features: geom and properties of each shape
-#     """
-#     from cartopy import feature, crs
-#     import pyproj
-#     import matplotlib.pyplot as plot
-#
-#     bbox = obj['bbox']
-#     patches = []
-#     irish_grid = pyproj.Proj("+init=EPSG:29902")
-#     for f in obj['features']:
-#         patch = feature.ShapelyFeature(f[0], irish_grid)
-#         patches.append(patch)
-#     ax = plot.axes(projection = crs.TransverseMercator)
-#     ax.coastlines()
-#
-#     for p in patches:
-#         plot.plot(p)
 
 
 
