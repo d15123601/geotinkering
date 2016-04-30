@@ -40,6 +40,7 @@ from descartes import PolygonPatch
 
 class shapes(geojson_obj):
     def __init__(self):
+        pass
 
 
 
@@ -211,10 +212,6 @@ def main():
     myGUI(root, datasets)
     root.mainloop()
 
-    print(len(counties['features']))
-    print(counties['crs'])
-    print(len(towns['features']))
-    print(towns['crs'])
 
 
 
