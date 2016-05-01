@@ -38,9 +38,9 @@ import os
 import json
 from descartes import PolygonPatch
 
-class shapes(geojson_obj):
-    def __init__(self):
-        pass
+# class shapes(geojson_obj):
+#     def __init__(self):
+#         pass
 
 
 

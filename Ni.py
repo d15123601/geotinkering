@@ -15,8 +15,8 @@ PARAMS1 = {
     "layer": "cso:ctygeom",
     "srs_code": 29902,
     "properties": ["countyname", ],
-    "geom_field": "geom",
-    "filter_property": "countyname",
+    "geom_field": "",
+    "filter_property": "",
     "filter_values": []
 }
 
@@ -25,12 +25,12 @@ PARAMS2 = {
     "layer": "dit:geonames_populated",
     "srs_code": 29902,
     "properties": [],
-    "geom_field": "geom",
-    "filter_property": "countyname",
+    "geom_field": "",
+    "filter_property": "",
     "filter_values": []
 }
 
 polygons = get_geojson(PARAMS1)
 points = get_geojson(PARAMS2)
-
+print('hi')
 
