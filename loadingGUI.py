@@ -224,9 +224,7 @@ class loadingGUI():
         self.load_params()
 
     def fetch_geojson(self):
-        for p in self.params_list: print(p.get())
         self.param1.set(self.base_params['host'])
-        self.param2.set(self.base_params['layer'])
         self.param3.set(self.base_params['srs_code'])
         self.param4.set(self.base_params['properties'])
         self.param5.set(self.base_params['geom_field'])
@@ -243,9 +241,7 @@ class loadingGUI():
 
         # create a stack of the geojson objects, only storing each one once
         self.gj_stack[self.base_params['layer']] = gj
-        for k,v in self.gj_stack.items():
-            print(k)
-        print(len(self.gj_stack))
+
 
     def get_geojson(self, params):
         """
