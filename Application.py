@@ -148,14 +148,11 @@ class myGUI:
         owner = event.widget
         self.geo_item = owner.get()
 
-
-
     def update_itemcb(self, dataset_name):
         item_list = [i[0] for i in self.dataset[dataset_name]]
         self.cb_list = 'Please select from below'
         self.itemcb['values'] = item_list
         self.itemcb.state(['!disabled', 'readonly'])
-
 
     def add_cb_value(self):
         self.cty = str(self.dataset_cb_newselection)
@@ -163,7 +160,6 @@ class myGUI:
 
     def choose_selected(self):
         pass
-
 
     def merge_chosen(self):
         #TODO ensure >1 argument to this function

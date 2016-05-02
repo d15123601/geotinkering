@@ -62,6 +62,9 @@ class loadingGUI():
                                            text = 'Select one of the datasets\n' +
                                                   'by clicking the button',
                                           relief = 'sunken')
+        self.geojson_nav_frame = ttk.LabelFrame(self.mainframe,
+                                                text = 'Please explore the data here',
+                                                relief = 'sunken')
 
         self.entry1 = ttk.Entry(self.entry_frame,
                                 textvariable = self.param1)
@@ -154,9 +157,11 @@ class loadingGUI():
                                        text = '^ FETCH ^',
                                        command = self.fetch_geojson)
 
+        self.geoj_cb = ttk.Combobox(self.geojson_nav_frame,
+                                    state = 'disabled')
+
         self.mainframe.grid(row=0, column = 0)
         self.label1.grid(row = 0, column = 0, columnspan = 4, sticky = 'ew')
-        self.label2.grid(row = 3, column = 0, columnspan = 4, sticky = 'ew')
         self.entry_frame.grid(row = 1, column = 0, sticky = 'ns')
         self.lbl_p1.grid(row = 0, column = 0)
         self.lbl_p2.grid(row = 1, column = 0)
@@ -194,6 +199,14 @@ class loadingGUI():
         self.button_Provinces.grid(row = 3, sticky = 'ew')
         self.button_SAs.grid(row = 4, sticky = 'ew')
         self.button_Towns.grid(row = 5, sticky = 'ew')
+
+        self.geojson_nav_frame.grid(row = 2, column = 0,
+                                    columnspan = 4, sticky = 'ew')
+        self.geoj_cb.grid(row = 0, column = 0,
+                          columnspan = 2, sticky = 'nw')
+
+
+        self.label2.grid(row = 3, column = 0, columnspan = 4, sticky = 'ew')
         
     def load_params(self):
         for child, i in zip(self.display_frame.winfo_children(), self.params_list):
@@ -224,6 +237,9 @@ class loadingGUI():
         self.load_params()
 
     def fetch_geojson(self):
+        #TODO Set styles to show when data is loading
+        btn = self.button_Fetch
+        btn.state(['!active','disabled'])
         self.param1.set(self.base_params['host'])
         self.param3.set(self.base_params['srs_code'])
         self.param4.set(self.base_params['properties'])
@@ -240,8 +256,16 @@ class loadingGUI():
         gj = self.get_geojson(self.base_params)
 
         # create a stack of the geojson objects, only storing each one once
+        print(self.base_params['layer'])
         self.gj_stack[self.base_params['layer']] = gj
+        print(len(self.gj_stack))
+        btn.state(['!disabled','active'])
+        self.update_geoj_cb(self.gj_stack)
 
+    def update_geoj_cb(self, adict):
+        for i in adict.keys(): print(i)
+        self.geoj_cb['values'] = [i for i in adict.keys()]
+        self.geoj_cb.state(['!disabled', 'readonly'])
 
     def get_geojson(self, params):
         """
