@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import ttk
-
+from collections import defaultdict
 
 class loadingGUI():
     def __init__(self, master):
@@ -15,7 +15,7 @@ class loadingGUI():
                        'properties': "",
                        'geom_field': "",
                        'filter_property': "",
-                       'filter_values': ""}
+                       'filter_values': ""} # dict to store the  fetch params
 
         self.param1 = StringVar()
         self.param2 = StringVar()
@@ -31,7 +31,10 @@ class loadingGUI():
                        self.param4,
                        self.param5,
                        self.param6,
-                       self.param7]
+                       self.param7] # list to allow iterative assignment and retrieval of
+                                    # params
+
+        self.gj_stack =  defaultdict(list) #stack to store geojson objects retrieved
 
         # Initialise the widgets
         self.mainframe = ttk.Frame(self.master)
@@ -95,14 +98,6 @@ class loadingGUI():
         self.lbl_p7 = ttk.Label(self.entry_frame,
                                 foreground = 'green',
                                 text = 'filter criteria:')
-
-        self.param1.set(self.base_params['host'])
-        self.param2.set(self.base_params['layer'])
-        self.param3.set(self.base_params['srs_code'])
-        self.param4.set(self.base_params['properties'])
-        self.param5.set(self.base_params['geom_field'])
-        self.param6.set(self.base_params['filter_property'])
-        self.param7.set(self.base_params['filter_values'])
 
         self.button_load_params = ttk.Button(self.entry_frame,
                                           text = "^ Load ^",
@@ -229,16 +224,28 @@ class loadingGUI():
         self.load_params()
 
     def fetch_geojson(self):
-        self.base_params['host'] = self.params_list[0].get()
-        self.base_params['layer'] = self.params_list[1].get()
-        self.base_params['srs_code'] = self.params_list[2].get()
-        self.base_params['properties'] = self.params_list[3].get()
-        self.base_params['geom_field'] = self.params_list[4].get()
-        self.base_params['filter_property'] = self.params_list[5].get()
-        self.base_params['filter_values'] = self.params_list[6].get()
-        #for i in self.base_params.values(): print(i)
+        for p in self.params_list: print(p.get())
+        self.param1.set(self.base_params['host'])
+        self.param2.set(self.base_params['layer'])
+        self.param3.set(self.base_params['srs_code'])
+        self.param4.set(self.base_params['properties'])
+        self.param5.set(self.base_params['geom_field'])
+        self.param6.set(self.base_params['filter_property'])
+        self.param7.set(self.base_params['filter_values'])
+        self.base_params['host'] = self.param1.get()
+        self.base_params['layer'] = self.param2.get()
+        self.base_params['srs_code'] = self.param3.get()
+        self.base_params['properties'] = self.param4.get()
+        self.base_params['geom_field'] = self.param5.get()
+        self.base_params['filter_property'] = self.param6.get()
+        self.base_params['filter_values'] = self.param7.get()
         gj = self.get_geojson(self.base_params)
-        print('hi')
+
+        # create a stack of the geojson objects, only storing each one once
+        self.gj_stack[self.base_params['layer']] = gj
+        for k,v in self.gj_stack.items():
+            print(k)
+        print(len(self.gj_stack))
 
     def get_geojson(self, params):
         """
