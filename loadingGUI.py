@@ -178,8 +178,24 @@ class loadingGUI():
                                                text = 'Add to O/P Stack',
                                                style = 'Wait.TButton',
                                                command = self.add_to_stack)
-        self.gis_stack_label = ttk.Label(self.geojson_nav_frame,
-                                         textvariable = self.gis_stack_text)
+        # self.gis_stack_label = ttk.Label(self.geojson_nav_frame,
+        #                                  textvariable = self.gis_stack_text)
+
+        # Set up the treeview widget
+        self.tree_geoj= ttk.Treeview(self.geojson_nav_frame,
+                                     selectmode = 'browse')
+        self.tree_geoj["columns"] = ('R','L1', 'L2', 'L3', 'L4')
+        self.tree_geoj.column('R', width = 100)
+        self.tree_geoj.column('L1', width = 100)
+        self.tree_geoj.column('L2', width = 100)
+        self.tree_geoj.column('L3', width = 100)
+        self.tree_geoj.column('L4', width = 100)
+        self.tree_geoj.heading('R', text = 'Root Object')
+        self.tree_geoj.heading('L1', text = 'Level 1')
+        self.tree_geoj.heading('L2', text = 'Level 2')
+        self.tree_geoj.heading('L3', text = 'Level 3')
+        self.tree_geoj.heading('L4', text = 'Level 4')
+
         self.info_label = ttk.Label(self.mainframe,
                                     textvariable = self.info_text)
 
@@ -230,8 +246,9 @@ class loadingGUI():
         self.geoj_cb.grid(row = 0, column = 0,
                           columnspan = 2, sticky = 'nw')
         self.button_stack_for_gis.grid(row = 0, column = 2)
-        self.gis_stack_label.grid(row = 0, column = 3)
+        #self.gis_stack_label.grid(row = 0, column = 3)
         self.button_gis_send.grid(row = 0, column = 4)
+        self.tree_geoj.grid(row = 1, columnspan = 4)
 
         self.label2.grid(row = 3, column = 0, columnspan = 4, sticky = 'ew')
         self.info_label.grid(row = 4, column = 0)
@@ -240,16 +257,18 @@ class loadingGUI():
         self.geoj_cb_value = self.geoj_cb.bind("<<ComboboxSelected>>", self.newselection)
 
     def newselection(self, event):
-        owner = event.widget
-        new_item = owner.get() + '\n'
-        stack_contents = self.gis_stack_text.get()
-        if new_item in stack_contents:
-            self.info_text.set('You already have this item in the stack;\n' +
-                               'Please choose anoher or proceed to GIS')
-            pass
-        else:
-            self.gis_stack.append(new_item)
-            self.gis_stack_text.set(stack_contents + new_item)
+        # owner = event.widget
+        # new_item = owner.get() + '\n'
+        # stack_contents = self.gis_stack_text.get()
+        # if new_item in stack_contents:
+        #     self.info_text.set('You already have this item in the stack;\n' +
+        #                        'Please choose anoher or proceed to GIS')
+        #     pass
+        # else:
+        #     self.gis_stack.append(new_item)
+        #     self.gis_stack_text.set(stack_contents + new_item)
+        # TODO add treeview update to this method
+        pass
 
     def add_to_stack(self):
         # TODO add function to add selected cb item to stack, and display in tree
