@@ -44,7 +44,7 @@ from descartes import PolygonPatch
 
 
 
-class myGUI:
+class gisGUI:
     def __init__(self, master, input_datasets):
         # variables
         self.dataset_ref = ""
@@ -205,18 +205,8 @@ def main():
     county_names = [(c[1]['countyname'],c[0]) for c in counties['features']]
     town_names = [(t[1]['name'],t[0]) for t in towns['features']]
     datasets = {'Counties':county_names, 'Towns':town_names}
-    myGUI(root, datasets)
+    gisGUI(root, datasets)
     root.mainloop()
-
-
-
-
-
-
-
-
-
-
 
 if __name__ == '__main__':
     main()

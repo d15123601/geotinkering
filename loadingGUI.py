@@ -1,12 +1,19 @@
 from tkinter import *
 from tkinter import ttk
 from collections import defaultdict
+from tkinter import messagebox
 
 class loadingGUI():
     def __init__(self, master):
         self.master = master
         self.master.title("Dataset selection")
 
+        master.protocol("WM_DELETE_WINDOW", self.catch_destroy)
+
+        # Set Button style
+        s = ttk.Style()
+        s.configure('Wait.TButton',foreground = 'red', state = 'disabled')
+        s.configure('Go.TButton', foreground = 'green', state = 'active')
 
         # Initialise variables here
         self.base_params = {'host': "mf2.dit.ie:8080",
@@ -24,6 +31,10 @@ class loadingGUI():
         self.param5 = StringVar()
         self.param6 = StringVar()
         self.param7 = StringVar()
+        self.gis_stack_text = StringVar()
+        self.info_text = StringVar()
+
+        self.gis_stack = [] # stack to store items to send to GIS
 
         self.params_list = [self.param1,
                        self.param2,
@@ -159,18 +170,32 @@ class loadingGUI():
 
         self.geoj_cb = ttk.Combobox(self.geojson_nav_frame,
                                     state = 'disabled')
+        self.button_gis_send = ttk.Button(self.geojson_nav_frame,
+                                          text = 'Send to GIS',
+                                          style = 'Go.TButton',
+                                          command = self.send_to_gis)
+        self.button_stack_for_gis = ttk.Button(self.geojson_nav_frame,
+                                               text = 'Add to O/P Stack',
+                                               style = 'Wait.TButton',
+                                               command = self.add_to_stack)
+        self.gis_stack_label = ttk.Label(self.geojson_nav_frame,
+                                         textvariable = self.gis_stack_text)
+        self.info_label = ttk.Label(self.mainframe,
+                                    textvariable = self.info_text)
 
         self.mainframe.grid(row=0, column = 0)
         self.label1.grid(row = 0, column = 0, columnspan = 4, sticky = 'ew')
         self.entry_frame.grid(row = 1, column = 0, sticky = 'ns')
-        self.lbl_p1.grid(row = 0, column = 0)
-        self.lbl_p2.grid(row = 1, column = 0)
-        self.lbl_p3.grid(row = 2, column = 0)
-        self.lbl_p4.grid(row = 3, column = 0)
-        self.lbl_p5.grid(row = 4, column = 0)
-        self.lbl_p6.grid(row = 5, column = 0)
-        self.lbl_p7.grid(row = 6, column = 0)
-        self.button_Fetch.grid(row = 7, column = 0)
+        self.lbl_p1.grid(row = 0, column = 0, sticky = 'ew')
+        self.lbl_p2.grid(row = 1, column = 0, sticky = 'ew')
+        self.lbl_p3.grid(row = 2, column = 0, sticky = 'ew')
+        self.lbl_p4.grid(row = 3, column = 0, sticky = 'ew')
+        self.lbl_p5.grid(row = 4, column = 0, sticky = 'ew')
+        self.lbl_p6.grid(row = 5, column = 0, sticky = 'ew')
+        self.lbl_p7.grid(row = 6, column = 0, sticky = 'ew')
+        self.button_Fetch.grid(row = 7, column = 0,
+                               columnspan= 2,
+                               sticky = 'ew')
         self.entry1.grid(row = 0, column = 1, sticky = 'ew')
         self.entry2.grid(row = 1, column = 1, sticky = 'ew')
         self.entry3.grid(row = 2, column = 1, sticky = 'ew')
@@ -204,10 +229,36 @@ class loadingGUI():
                                     columnspan = 4, sticky = 'ew')
         self.geoj_cb.grid(row = 0, column = 0,
                           columnspan = 2, sticky = 'nw')
-
+        self.button_stack_for_gis.grid(row = 0, column = 2)
+        self.gis_stack_label.grid(row = 0, column = 3)
+        self.button_gis_send.grid(row = 0, column = 4)
 
         self.label2.grid(row = 3, column = 0, columnspan = 4, sticky = 'ew')
-        
+        self.info_label.grid(row = 4, column = 0)
+
+        #Event handling
+        self.geoj_cb_value = self.geoj_cb.bind("<<ComboboxSelected>>", self.newselection)
+
+    def newselection(self, event):
+        owner = event.widget
+        new_item = owner.get() + '\n'
+        stack_contents = self.gis_stack_text.get()
+        if new_item in stack_contents:
+            self.info_text.set('You already have this item in the stack;\n' +
+                               'Please choose anoher or proceed to GIS')
+            pass
+        else:
+            self.gis_stack.append(new_item)
+            self.gis_stack_text.set(stack_contents + new_item)
+
+    def add_to_stack(self):
+        # TODO add function to add selected cb item to stack, and display in tree
+        pass
+
+    def send_to_gis(self):
+        #TODO pass gis_stack to the gisGUI, with names parsed properly
+        pass
+
     def load_params(self):
         for child, i in zip(self.display_frame.winfo_children(), self.params_list):
             child.configure(text = i.get())
@@ -239,7 +290,7 @@ class loadingGUI():
     def fetch_geojson(self):
         #TODO Set styles to show when data is loading
         btn = self.button_Fetch
-        btn.state(['!active','disabled'])
+        btn.configure(style = 'Wait.TButton')
         self.param1.set(self.base_params['host'])
         self.param3.set(self.base_params['srs_code'])
         self.param4.set(self.base_params['properties'])
@@ -256,16 +307,17 @@ class loadingGUI():
         gj = self.get_geojson(self.base_params)
 
         # create a stack of the geojson objects, only storing each one once
-        print(self.base_params['layer'])
         self.gj_stack[self.base_params['layer']] = gj
-        print(len(self.gj_stack))
-        btn.state(['!disabled','active'])
         self.update_geoj_cb(self.gj_stack)
 
     def update_geoj_cb(self, adict):
         for i in adict.keys(): print(i)
         self.geoj_cb['values'] = [i for i in adict.keys()]
         self.geoj_cb.state(['!disabled', 'readonly'])
+
+    def catch_destroy(self):
+        if messagebox.askokcancel("Quit", "Do you really want to quit?"):
+            self.master.destroy()
 
     def get_geojson(self, params):
         """
