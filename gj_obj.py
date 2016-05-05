@@ -11,9 +11,8 @@ places_pts = json.loads(pop_str)
 
 def geoj_exploder(gj_obj):
     l1 = [(k,v) for k,v in gj_obj.items()]
-    i = gj_obj['features'][0]
-    p = i['properties']
-    l2 = list(p.keys())
+    i = gj_obj['features'][0]['properties']
+    l2 = list(i.keys())
 
     return [l1, l2]
 
