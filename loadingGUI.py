@@ -401,7 +401,6 @@ class loadingGUI():
         self.update_geoj_cb(self.gj_stack)
 
     def update_geoj_cb(self, adict):
-        for i in adict.keys(): print(i)
         self.geoj_cb['values'] = [i for i in adict.keys()]
         self.geoj_cb.state(['!disabled', 'readonly'])
 
