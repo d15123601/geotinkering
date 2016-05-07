@@ -19,18 +19,28 @@ class data_prep:
 
         self.sv_dialog = StringVar()
         self.prop_list = StringVar()
+        self.prop_sample = StringVar()
+        self.prop_sample.set('Data values will appear here')
+        self.feature_property = StringVar()
+        self.stack = []
+        self.stack_text = []
+        self.lv_stack = StringVar()
 
         self.mainframe = ttk.Frame(self.parent)
+        self.l_frame = ttk.LabelFrame(self.mainframe,
+                                      text = 'Pick dataset and choose feature identifier')
+        self.r_frame = ttk.LabelFrame(self.mainframe,
+                                      text= 'View stack here, and send to GIS')
         self.dialog = ttk.Label(self.mainframe,
                                 textvariable = self.sv_dialog,
                                 foreground = 'blue',
                                 relief = 'sunken')
         self.sv_dialog.set('Please choose the best name for the features of each dataset')
-        self.cb_dataset = ttk.Combobox(self.mainframe,)
+        self.cb_dataset = ttk.Combobox(self.l_frame)
         self.cb_dataset['values'] = [i for i in self.data.keys()]
-        self.cb_dataset.bind("<<ComboboxSelected>>", self.cb_dataset_selection)
-
-        self.lb_properties = Listbox(self.mainframe,
+        self.lbl_properties = ttk.Label(self.l_frame,
+                                        text = 'Feature properties')
+        self.lb_properties = Listbox(self.l_frame,
                                      exportselection = 0,
                                      bd = 5,
                                      width = 40,
@@ -38,11 +48,52 @@ class data_prep:
                                      listvariable = self.prop_list,
                                      state = 'disabled'
                                      )
+        self.lbl_example = ttk.Label(self.l_frame,
+                                     textvariable = self.feature_property,
+                                     foreground = 'red',
+                                     background = 'white',
+                                     relief = 'sunken',
+                                     anchor = 'center',
+                                     font =('Helvetica', '12'))
+        self.lb_stack = Listbox(self.r_frame,
+                                exportselection = 0,
+                                bd = 5,
+                                width = 40,
+                                selectmode = SINGLE,
+                                state = 'disabled',
+                                listvariable = self.lv_stack
+                                )
+        self.btn_confirm_send = ttk.Button(self.l_frame,
+                                           text = 'Confirm and Add to Stack',
+                                           command = self.confirm,
+                                           )
+        self.btn_gis_open = ttk.Button(self.r_frame,
+                                       text = 'Open GIS with selected data',
+                                       command = self.open_gis)
 
         self.mainframe.grid(row =0, column = 0)
-        self.dialog.grid(row = 0, sticky = 'ew')
-        self.cb_dataset.grid(row = 1, column = 0, sticky = 'new')
-        self.lb_properties.grid(row = 2, column = 0, sticky = 'sew')
+        self.l_frame.grid(row = 1, column = 0, sticky = 'new')
+        self.r_frame.grid(row = 1, column = 1, sticky = 'new')
+        self.dialog.grid(row = 0, columnspan = 2, sticky = 'new')
+        self.cb_dataset.grid(row = 1, sticky = 'ew')
+        self.lbl_properties.grid(row = 2)
+        self.lb_properties.grid(row = 3, sticky = 'sew')
+        self.btn_confirm_send.grid(row = 4, column = 0, sticky ='ew')
+        self.lbl_example.grid(row = 3, column = 0, sticky = 'sew')
+        self.lb_stack.grid(row = 1, column = 0, sticky = 'nw')
+        self.btn_gis_open.grid(row = 2, column = 0,
+                               sticky = 'sew')
+
+        # Event Management
+        self.cb_dataset.bind("<<ComboboxSelected>>", self.cb_dataset_selection)
+        self.lb_properties.bind("<<ListboxSelect>>", self.item_selection)
+
+    def item_selection(self, event):
+        owner = event.widget
+        item = owner.get(owner.curselection())
+        current_dataset = self.data[self.cb_dataset.get()]
+        x = current_dataset['features'][0]['properties'][item]
+        self.feature_property.set(x)
 
 
     def catch_destroy(self):
@@ -55,6 +106,17 @@ class data_prep:
         self.prop_list.set(list(feature_props))
         self.lb_properties.configure(state = 'normal')
 
+    def confirm(self):
+        #TODO add check for duplicate datasets
+        current_dataset = self.data[self.cb_dataset.get()]
+        feature_name = self.lb_properties.get(self.lb_properties.curselection())
+        self.stack.append([current_dataset, feature_name])
+        self.stack_text.append('Dataset: {} -- Feature Name: {}'.format(self.cb_dataset.get(),feature_name))
+        self.lv_stack.set(self.stack_text)
+
+    def open_gis(self):
+        #TODO add this functionality
+        pass
 
 
 def main():
