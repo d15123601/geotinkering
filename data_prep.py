@@ -92,8 +92,10 @@ class data_prep:
         owner = event.widget
         item = owner.get(owner.curselection())
         current_dataset = self.data[self.cb_dataset.get()]
-        x = current_dataset['features'][0]['properties'][item]
-        self.feature_property.set(x)
+        item_str = str(current_dataset['features'][0]['properties'][item])
+        if len(item_str) > 30:
+            item_str = "{}{}".format(item_str[:25],'....')
+        self.feature_property.set(item_str)
 
 
     def catch_destroy(self):
@@ -107,15 +109,19 @@ class data_prep:
         self.lb_properties.configure(state = 'normal')
 
     def confirm(self):
-        #TODO add check for duplicate datasets
-        current_dataset = self.data[self.cb_dataset.get()]
-        feature_name = self.lb_properties.get(self.lb_properties.curselection())
-        self.stack.append([current_dataset, feature_name])
-        self.stack_text.append('Dataset: {} -- Feature Name: {}'.format(self.cb_dataset.get(),feature_name))
-        self.lv_stack.set(self.stack_text)
+        ds_name = self.cb_dataset.get()
+        current_dataset = self.data[ds_name]
+        if ds_name in [i[2] for i in self.stack]:
+            messagebox.showerror('Info','The dataset is already in the stack')
+            pass
+        else:
+            feature_name = self.lb_properties.get(self.lb_properties.curselection())
+            self.stack.append([current_dataset, feature_name, ds_name])
+            #todo format the below string to align nicely
+            self.stack_text.append('Dataset: {} --\t\t Feature Name: {}'.format(ds_name,feature_name))
+            self.lv_stack.set(self.stack_text)
 
     def open_gis(self):
-        #TODO add this functionality
         pass
 
 

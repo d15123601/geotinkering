@@ -45,6 +45,7 @@ def plot_shapes(shapes):
     ax.add_collection(PatchCollection(patches))
     plt.show()
 
+
 def shape_maker(geojson_obj):
     """
     This function takes a geojson object and returns the pertinent data
@@ -62,6 +63,29 @@ def shape_maker(geojson_obj):
         features.append((g,p))
     op_dict = {'crs':crs, 'bbox':bbox,'features':features}
     return op_dict
+
+
+def shape_maker2(geojson_obj, feature_name):
+    """
+    This function takes a geojson object and returns the pertinent data
+    for this application.
+    :param geojson_obj:
+    :return: dict containing crs, bbox and shapely features
+    """
+    from shapely import geometry
+    from collections import defaultdict
+
+    crs = geojson_obj['crs']
+    bbox = geojson_obj['bbox']
+    features = defaultdict(set)
+    for f in geojson_obj['features']:
+        name = f['properties'][feature_name]
+        g = geometry.asShape(f['geometry'])
+        p = f['properties']
+        features[name] = (g, p)
+    op_dict = {'crs':crs, 'bbox':bbox,'features':features}
+    return op_dict
+
 
 def pick_geojson(obj, getitem):
     """

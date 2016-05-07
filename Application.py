@@ -24,7 +24,7 @@ from tkinter import ttk
 import cartopy
 import matplotlib.pyplot as plt
 from geo_utils import get_data_from_geoserver, geocode_item
-from geo_utils import shape_maker
+from geo_utils import shape_maker2
 from fiona import collection
 from fiona.crs import from_epsg
 import fiona
@@ -198,8 +198,8 @@ def main():
     cty_polygons = json.loads(cty_str)
     places_pts = json.loads(pop_str)
 
-    counties = shape_maker(cty_polygons)
-    towns = shape_maker(places_pts)
+    counties = shape_maker2(cty_polygons, 'countyname')
+    towns = shape_maker2(places_pts, 'asciiname')
 
     root = Tk()
     county_names = [(c[1]['countyname'],c[0]) for c in counties['features']]

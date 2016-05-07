@@ -300,13 +300,17 @@ class loadingGUI():
         self.data_tb_value = self.data_tb.bind("<<ListboxSelect>>", self.item_selection)
 
     def geoj_cb_selection(self, event):
+        #TODO function which blanks the display boxes when this changes
         owner = event.widget
         self.selected_item.set(owner.get())
 
     def item_selection(self, event):
         owner = event.widget
         line = owner.get(owner.curselection())
-        self.data_item.set(self.data_dict[line])
+        item_str = str(self.data_dict[line])
+        if len(item_str) > 30:
+            item_str = "{}{}".format(item_str[:25],'....')
+        self.data_item.set(item_str)
 
 
     def add_to_stack(self):
