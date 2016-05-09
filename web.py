@@ -39,7 +39,7 @@ from time import sleep
 
 def scrape(num_pages=31):
     base_url = "http://shop.oreilly.com/category/browse-subjects/" + \
-           "data.do?sortby=publicationDate&page="
+           "gj_stack.do?sortby=publicationDate&page="
 
     books = []
 
@@ -63,7 +63,7 @@ def get_year(book):
     return int(book["date"].split()[1])
 
 def plot_years(plt, books):
-    # 2014 is the last complete year of data (when I ran this)
+    # 2014 is the last complete year of gj_stack (when I ran this)
     year_counts = Counter(get_year(book) for book in books
                           if get_year(book) <= 2014)
 
@@ -71,7 +71,7 @@ def plot_years(plt, books):
     book_counts = [year_counts[year] for year in x]
     plt.bar([x - 0.5 for x in years], book_counts)
     plt.xlabel("year")
-    plt.ylabel("# of data books")
+    plt.ylabel("# of gj_stack books")
     plt.title("Data is Big!")
     plt.show()
 
@@ -109,8 +109,8 @@ def call_twitter_search_api():
 
     twitter = Twython(CONSUMER_KEY, CONSUMER_SECRET)
 
-    # search for tweets containing the phrase "data science"
-    for status in twitter.search(q='"data science"')["statuses"]:
+    # search for tweets containing the phrase "gj_stack science"
+    for status in twitter.search(q='"gj_stack science"')["statuses"]:
         user = status["user"]["screen_name"].encode('utf-8')
         text = status["text"].encode('utf-8')
         print(user, ":", text)
@@ -118,7 +118,7 @@ def call_twitter_search_api():
 
 from twython import TwythonStreamer
 
-# appending data to a global variable is pretty poor form
+# appending gj_stack to a global variable is pretty poor form
 # but it makes the example much simpler
 tweets = []
 
@@ -127,8 +127,8 @@ class MyStreamer(TwythonStreamer):
     how to interact with the stream"""
 
     def on_success(self, data):
-        """what do we do when twitter sends us data?
-        here data will be a Python object representing a tweet"""
+        """what do we do when twitter sends us gj_stack?
+        here gj_stack will be a Python object representing a tweet"""
 
         # only want to collect English-language tweets
         if data['lang'] == 'en':
@@ -146,8 +146,8 @@ def call_twitter_streaming_api():
     stream = MyStreamer(CONSUMER_KEY, CONSUMER_SECRET,
                         ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
-    # starts consuming public statuses that contain the keyword 'data'
-    stream.statuses.filter(track='data')
+    # starts consuming public statuses that contain the keyword 'gj_stack'
+    stream.statuses.filter(track='gj_stack')
 
 
 if __name__ == "__main__":
@@ -201,11 +201,11 @@ if __name__ == "__main__":
     serialized = """{ "title" : "Data Science Book",
                       "author" : "Joel Grus",
                       "publicationYear" : 2014,
-                      "topics" : [ "data", "science", "data science"] }"""
+                      "topics" : [ "gj_stack", "science", "gj_stack science"] }"""
 
     # parse the JSON to create a Python object
     deserialized = json.loads(serialized)
-    if "data science" in deserialized["topics"]:
+    if "gj_stack science" in deserialized["topics"]:
         print(deserialized)
 
     print()

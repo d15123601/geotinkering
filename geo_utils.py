@@ -48,7 +48,7 @@ def plot_shapes(shapes):
 
 def shape_maker(geojson_obj):
     """
-    This function takes a geojson object and returns the pertinent data
+    This function takes a geojson object and returns the pertinent gj_stack
     for this application.
     :param geojson_obj:
     :return: dict containing crs, bbox and shapely features
@@ -67,7 +67,7 @@ def shape_maker(geojson_obj):
 
 def shape_maker2(geojson_obj, feature_name):
     """
-    This function takes a geojson object and returns the pertinent data
+    This function takes a geojson object and returns the pertinent gj_stack
     for this application.
     :param geojson_obj:
     :return: dict containing crs, bbox and shapely features
@@ -90,7 +90,7 @@ def shape_maker2(geojson_obj, feature_name):
 def pick_geojson(obj, getitem):
     """
     :param geojson_obj: This item is the geojson object for which we want to access
-                        the data for.
+                        the gj_stack for.
     :param getitem: This is the item which we are looking for within the geojson object
     :return: The return will be a list of the object(s) we are looking for.
     """
@@ -192,7 +192,7 @@ def get_geojson(params):
         response = response.decode()
 
         #
-        # Geoserver only sends valid data in the requested format, in our case GeoJSON, so if we get a response back in
+        # Geoserver only sends valid gj_stack in the requested format, in our case GeoJSON, so if we get a response back in
         # XML format we know that we have an error. We do minimal parsing on the xml to extract the error text and raise
         # an exception based on it.
         #
@@ -214,7 +214,7 @@ def get_data_from_postgres(conn, qry):
     A one-line definition of what the function does
     More detail as necessary
     :param conn: The database connection string
-    :param qry: The SQL query which gets the data
+    :param qry: The SQL query which gets the gj_stack
     :return: The result set.
     """
     import psycopg2

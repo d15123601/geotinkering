@@ -7,11 +7,11 @@ import os
 """
 Create new shapefiles using Shapely and Fiona
 
-This exercise is designed to combine basic programming skills with a first attempt at processing geospatial data using the libraries, Shapely and Fiona. Remember, Shapely encapsulates the functionality of GEOS so it's useful in manipulating spatial objects, and Fiona reads and writes various vector formats including shapefiles.
+This exercise is designed to combine basic programming skills with a first attempt at processing geospatial gj_stack using the libraries, Shapely and Fiona. Remember, Shapely encapsulates the functionality of GEOS so it's useful in manipulating spatial objects, and Fiona reads and writes various vector formats including shapefiles.
 
 The task
 
-Take an existing CSV (comma-separated values) text file which contains data which can be represented as points. I suggest using one of the CSVs created by Alain for his tutorial.
+Take an existing CSV (comma-separated values) text file which contains gj_stack which can be represented as points. I suggest using one of the CSVs created by Alain for his tutorial.
 Create a new schema which takes some or all of the elements in each row and creates a new shapefile with polygon geometries representing a buffer around each point.
 Create yet another shapefile to merge the buffers into a single multipolygon geometry.
 """

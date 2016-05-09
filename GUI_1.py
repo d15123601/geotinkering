@@ -32,15 +32,6 @@ class loadingGUI():
         self.param5 = StringVar()
         self.param6 = StringVar()
         self.param7 = StringVar()
-        self.gis_stack_text = StringVar()
-        self.info_text = StringVar()
-        self.selected_item = StringVar()
-        self.meta_list = StringVar()
-        self.data_headings_list = StringVar()
-        self.data_item = StringVar()
-        self.data_dict = {}
-
-        self.gis_stack = [] # stack to store items to send to GIS
 
         self.params_list = [self.param1,
                             self.param2,
@@ -52,6 +43,14 @@ class loadingGUI():
                                     # params
 
         self.gj_stack =  defaultdict(list) #stack to store geojson objects retrieved
+        self.sv_dialog = StringVar()
+        self.prop_list = StringVar()
+        self.prop_sample = StringVar()
+        self.prop_sample.set('Data values will appear here')
+        self.feature_property = StringVar()
+        self.stack = []
+        self.stack_text = []
+        self.lv_stack = StringVar()
 
         # Initialise the widgets
         self.mainframe = ttk.Frame(self.master)
@@ -174,62 +173,58 @@ class loadingGUI():
                                        text = '^ FETCH ^',
                                        command = self.fetch_geojson)
 
-        self.geoj_cb = ttk.Combobox(self.geojson_nav_frame,
-                                    state = 'disabled')
-        self.button_gis_stack = ttk.Button(self.geojson_nav_frame,
-                                          text = 'Add to GIS Stack',
-                                          style = 'Go.TButton',
-                                          command = self.add_to_stack)
-        self.button_inspect_item = ttk.Button(self.geojson_nav_frame,
-                                              text = 'Inspect Item',
-                                              style = 'Wait.TButton',
-                                              command = self.inspect_item)
+        # Bottom half of GUI
 
-        self.lbl_data1 = ttk.Label(self.geojson_nav_frame,
-                                  foreground = 'blue',
-                                  anchor = 'center',
-                                  text = 'Top Level Properties')
-        self.lbl_data2 = ttk.Label(self.geojson_nav_frame,
-                                  foreground = 'blue',
-                                  anchor = 'center',
-                                  text = 'Feature Properties')
-        self.frm_geoj_op = ttk.Frame(self.geojson_nav_frame)
-        self.lbl_data_example = ttk.Label(self.frm_geoj_op,
-                                          foreground = 'blue',
-                                          anchor = 'center',
-                                          text = 'Example Properties')
-        self.meta_tb = Listbox(self.geojson_nav_frame,
-                               exportselection = 0,
-                               bd = 5,
-                               width = 40,
-                               selectmode = SINGLE,
-                               listvariable = self.meta_list
-                               )
-        self.data_tb = Listbox(self.geojson_nav_frame,
-                               exportselection = 0,
-                               bd = 5,
-                               width = 20,
-                               selectmode = SINGLE,
-                               listvariable = self.data_headings_list
-                               )
-        self.lbl_gis_stack = ttk.Label(self.frm_geoj_op,
-                                       text = 'GIS Stack',
-                                       foreground = 'blue')
-        self.tb_data = ttk.Label(self.frm_geoj_op,
-                                 textvariable = self.data_item,
-                                 relief = 'sunken',
-                                 background = 'white',
+        self.l_frame = ttk.LabelFrame(self.mainframe,
+                                      text = 'Pick dataset and choose feature identifier')
+        self.r_frame = ttk.LabelFrame(self.mainframe,
+                                      text= 'View stack here, and send to GIS')
+        self.dialog = ttk.Label(self.mainframe,
+                                textvariable = self.sv_dialog,
+                                foreground = 'blue',
+                                relief = 'sunken')
+        self.sv_dialog.set('Please choose the best name for the features of each dataset')
+        self.cb_dataset = ttk.Combobox(self.l_frame)
+        self.lbl_properties = ttk.Label(self.l_frame,
+                                        text = 'Feature properties')
+        self.lb_properties = Listbox(self.l_frame,
+                                     exportselection = 0,
+                                     bd = 5,
+                                     width = 40,
+                                     selectmode = SINGLE,
+                                     listvariable = self.prop_list,
+                                     state = 'disabled'
+                                     )
+        self.lbl_example = ttk.Label(self.l_frame,
+                                     textvariable = self.feature_property,
+                                     foreground = 'red',
+                                     background = 'white',
+                                     relief = 'sunken',
+                                     anchor = 'center',
+                                     font =('Helvetica', '12'))
+        self.lb_stack = Listbox(self.r_frame,
+                                exportselection = 0,
+                                bd = 5,
+                                width = 40,
+                                selectmode = SINGLE,
+                                state = 'disabled',
+                                listvariable = self.lv_stack
                                 )
-        self.tb_geoj_stack = ttk.Label(self.frm_geoj_op,
-                                 textvariable = self.gis_stack_text,
-                                 relief = 'sunken',
-                                 background = 'white',
-                                )
-        self.info_label = Label(self.mainframe,
-                                textvariable = self.info_text,
-                                relief = 'sunken',
-                                anchor = 'center')
-        self.info_text.set('Use the dialog above to explore the datasets')
+        self.btn_confirm_send = ttk.Button(self.l_frame,
+                                           text = 'Confirm and Add to Stack',
+                                           command = self.confirm,
+                                           )
+        self.btn_clear_stack = ttk.Button(self.r_frame,
+                                          text = 'Clear Stack',
+                                          command = self.clear_stack)
+        self.btn_gis_open = ttk.Button(self.r_frame,
+                                       text = 'Open GIS with current Stack',
+                                       command = self.open_gis)
+        self.info_text = ttk.Label(self.mainframe,
+                                   text = 'Information messages will appear here',
+                                   foreground = 'blue')
+
+        # Layout the GUI
 
         self.mainframe.grid(row=0, column = 0)
         self.label1.grid(row = 0, column = 0, columnspan = 4, sticky = 'ew')
@@ -272,45 +267,70 @@ class loadingGUI():
         self.button_Provinces.grid(row = 3, sticky = 'ew')
         self.button_SAs.grid(row = 4, sticky = 'ew')
         self.button_Towns.grid(row = 5, sticky = 'ew')
+        self.l_frame.grid(row = 3, column = 0, sticky = 'new')
+        self.r_frame.grid(row = 3, column = 1, sticky = 'new')
+        self.dialog.grid(row = 0, columnspan = 2, sticky = 'new')
+        self.cb_dataset.grid(row = 1, sticky = 'ew')
+        self.lbl_properties.grid(row = 2)
+        self.lb_properties.grid(row = 3, sticky = 'sew')
+        self.btn_confirm_send.grid(row = 4, column = 0, sticky ='ew')
+        self.lbl_example.grid(row = 3, column = 0, sticky = 'sew')
+        self.lb_stack.grid(row = 1, column = 0, sticky = 'nw')
+        self.btn_gis_open.grid(row = 2, column = 0,
+                               sticky = 'sew')
+        self.btn_clear_stack.grid(row = 3, column = 0,
+                               sticky = 'sew')
+        self.info_text.grid(row = 4, columnspan = 4)
 
-        self.geojson_nav_frame.grid(row = 3, column = 0,
-                                    columnspan = 4, sticky = 'ew')
-        self.frm_geoj_op.grid(row = 2, column = 2, stick = 'n')
-        self.geoj_cb.grid(row = 0, column = 0,
-                          columnspan = 2, sticky = 'nw')
-        self.button_inspect_item.grid(row = 0, column = 1)
-        self.button_gis_stack.grid(row = 0, column = 2)
-        self.lbl_data1.grid(row = 1, column = 0)
-        self.lbl_data2.grid(row = 1, column = 1)
-        self.meta_tb.grid(row = 2, column = 0)
-        self.data_tb.grid(row = 2, column = 1)
-        self.lbl_data_example.grid(row = 0, column = 0, sticky = 'new')
-        self.tb_data.grid(row = 1, column = 0, sticky = 'new')
-        self.lbl_gis_stack.grid(row = 2, column = 0, sticky ='new')
-        self.tb_geoj_stack.grid(row = 3, column = 0, sticky = 'nsew')
-
-
-        self.label2.grid(row = 1, column = 0, columnspan = 4, sticky = 'ew')
-        self.info_label.grid(row = 4, column = 0, columnspan = 4, sticky = 'ew')
+        # Event Management
+        self.cb_dataset.bind("<<ComboboxSelected>>", self.cb_dataset_selection)
+        self.lb_properties.bind("<<ListboxSelect>>", self.item_selection)
 
 
-
-        #Event handling
-        self.geoj_cb_value = self.geoj_cb.bind("<<ComboboxSelected>>", self.geoj_cb_selection)
-        self.data_tb_value = self.data_tb.bind("<<ListboxSelect>>", self.item_selection)
-
-    def geoj_cb_selection(self, event):
-        #TODO function which blanks the display boxes when this changes
-        owner = event.widget
-        self.selected_item.set(owner.get())
+    def clear_stack(self):
+        self.stack = []
+        self.stack_text = []
+        self.lv_stack.set('')
 
     def item_selection(self, event):
         owner = event.widget
-        line = owner.get(owner.curselection())
-        item_str = str(self.data_dict[line])
+        item = owner.get(owner.curselection())
+        current_dataset = self.gj_stack[self.cb_dataset.get()]
+        item_str = str(current_dataset['features'][0]['properties'][item])
         if len(item_str) > 30:
             item_str = "{}{}".format(item_str[:25],'....')
-        self.data_item.set(item_str)
+        self.feature_property.set(item_str)
+
+
+    def catch_destroy(self):
+        if messagebox.askokcancel("Quit", "Do you really want to quit?"):
+            self.master.destroy()
+
+    def cb_dataset_selection(self, event):
+        owner = event.widget
+        feature_props = self.gj_stack[owner.get()]['features'][0]['properties']
+        self.prop_list.set(list(feature_props))
+        self.lb_properties.configure(state = 'normal')
+
+    def confirm(self):
+        #todo add exception handling for no item selected
+        ds_name = self.cb_dataset.get()
+        current_dataset = self.gj_stack[ds_name]
+        if ds_name in [i[2] for i in self.stack]:
+            messagebox.showerror('Info','The dataset is already in the stack')
+            pass
+        else:
+            try:
+                feature_name = self.lb_properties.get(self.lb_properties.curselection())
+                self.stack.append([current_dataset, feature_name, ds_name])
+                #todo format the below string to align nicely
+                self.stack_text.append('Dataset: {} --\t\t Feature Name: {}'.format(ds_name,feature_name))
+                self.lv_stack.set(self.stack_text)
+                self.info_text.set('Please examine the item.')
+            except TclError:
+                self.info_text.set('There is no item selected.')
+    def open_gis(self):
+        pass
 
 
     def add_to_stack(self):
@@ -383,30 +403,32 @@ class loadingGUI():
 
     def fetch_geojson(self):
         #TODO Set styles to show when gj_stack is loading
-        btn = self.button_Fetch
-        btn.configure(style = 'Wait.TButton')
-        self.param1.set(self.base_params['host'])
-        self.param3.set(self.base_params['srs_code'])
-        self.param4.set(self.base_params['properties'])
-        self.param5.set(self.base_params['geom_field'])
-        self.param6.set(self.base_params['filter_property'])
-        self.param7.set(self.base_params['filter_values'])
-        self.base_params['host'] = self.param1.get()
-        self.base_params['layer'] = self.param2.get()
-        self.base_params['srs_code'] = self.param3.get()
-        self.base_params['properties'] = self.param4.get()
-        self.base_params['geom_field'] = self.param5.get()
-        self.base_params['filter_property'] = self.param6.get()
-        self.base_params['filter_values'] = self.param7.get()
-        gj = self.get_geojson(self.base_params)
+        try:
+            btn = self.button_Fetch
+            btn.configure(style = 'Wait.TButton')
+            self.param1.set(self.base_params['host'])
+            self.param3.set(self.base_params['srs_code'])
+            self.param4.set(self.base_params['properties'])
+            self.param5.set(self.base_params['geom_field'])
+            self.param6.set(self.base_params['filter_property'])
+            self.param7.set(self.base_params['filter_values'])
+            self.base_params['host'] = self.param1.get()
+            self.base_params['layer'] = self.param2.get()
+            self.base_params['srs_code'] = self.param3.get()
+            self.base_params['properties'] = self.param4.get()
+            self.base_params['geom_field'] = self.param5.get()
+            self.base_params['filter_property'] = self.param6.get()
+            self.base_params['filter_values'] = self.param7.get()
+            gj = self.get_geojson(self.base_params)
 
-        # create a stack of the geojson objects, only storing each one once
-        self.gj_stack[self.base_params['layer']] = gj
-        self.update_geoj_cb(self.gj_stack)
+            # create a stack of the geojson objects, only storing each one once
+            self.gj_stack[self.base_params['layer']] = gj
+            self.label1.configure(text = 'Request Executed Successfully')
+            self.cb_dataset['values'] = [i for i in self.gj_stack.keys()]
+        except Exception:
+            self.label1.configure(text = 'Error With Request Parameters: Please Try Again')
 
-    def update_geoj_cb(self, adict):
-        self.geoj_cb['values'] = [i for i in adict.keys()]
-        self.geoj_cb.state(['!disabled', 'readonly'])
+
 
     def catch_destroy(self):
         if messagebox.askokcancel("Quit", "Do you really want to quit?"):
@@ -522,7 +544,6 @@ def main():
     root = Tk()
     loadingGUI(root)
     root.mainloop()
-
 
 if __name__ == '__main__':
     main()

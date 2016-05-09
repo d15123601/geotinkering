@@ -4,10 +4,10 @@ from collections import defaultdict
 from tkinter import messagebox
 import json
 """
-pass the dict of geojson objects to this gui in order to do some preprocessing of the data.
+pass the dict of geojson objects to this gui in order to do some preprocessing of the gj_stack.
 specifically, we want the user to define the parameter that stores the name for each feature,
 to make each feature more user friendly in downstream processes. Each dataset will have this
-defined and then the GUI for manipulating the data will be opened.
+defined and then the GUI for manipulating the gj_stack will be opened.
 """
 class data_prep:
     def __init__(self, parent, data):
@@ -67,11 +67,14 @@ class data_prep:
                                            text = 'Confirm and Add to Stack',
                                            command = self.confirm,
                                            )
+        self.btn_clear_stack = ttk.Button(self.r_frame,
+                                          text = 'Clear Stack',
+                                          command = self.clear_stack)
         self.btn_gis_open = ttk.Button(self.r_frame,
-                                       text = 'Open GIS with selected data',
+                                       text = 'Open GIS with selected gj_stack',
                                        command = self.open_gis)
 
-        self.mainframe.grid(row =0, column = 0)
+        self.mainframe.grid(row =0, column = 0, sticky = 'nsew')
         self.l_frame.grid(row = 1, column = 0, sticky = 'new')
         self.r_frame.grid(row = 1, column = 1, sticky = 'new')
         self.dialog.grid(row = 0, columnspan = 2, sticky = 'new')
@@ -83,10 +86,18 @@ class data_prep:
         self.lb_stack.grid(row = 1, column = 0, sticky = 'nw')
         self.btn_gis_open.grid(row = 2, column = 0,
                                sticky = 'sew')
+        self.btn_clear_stack.grid(row = 3, column = 0,
+                               sticky = 'sew')
 
         # Event Management
         self.cb_dataset.bind("<<ComboboxSelected>>", self.cb_dataset_selection)
         self.lb_properties.bind("<<ListboxSelect>>", self.item_selection)
+
+
+    def clear_stack(self):
+        self.stack = []
+        self.stack_text = []
+        self.lv_stack.set('')
 
     def item_selection(self, event):
         owner = event.widget

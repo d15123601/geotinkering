@@ -55,7 +55,7 @@ class gisGUI:
 
         self.dataset_list = [keys for keys in input_datasets.keys()]
         self.dataset = input_datasets
-        self.cb_list = ['No data loaded']
+        self.cb_list = ['No gj_stack loaded']
 
         self.ops_subject = StringVar()
         self.ops_subject.set('')
