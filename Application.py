@@ -19,8 +19,7 @@
 
 """
 
-from tkinter import *
-from tkinter import ttk
+
 import cartopy
 import matplotlib.pyplot as plt
 from geo_utils import get_data_from_geoserver, geocode_item
@@ -37,11 +36,6 @@ import collections
 import os
 import json
 from descartes import PolygonPatch
-
-# class shapes(geojson_obj):
-#     def __init__(self):
-#         pass
-
 
 
 class gisGUI:
@@ -181,32 +175,3 @@ class gisGUI:
     def line_join(self):
         pass
 
-def main():
-
-    #   Variable assignment or initialisation
-    countycents = collections.defaultdict(str)
-    poly_geoms = []
-    pt_geoms = []
-
-
-    with open("cso_counties.txt",'r') as f1:
-        cty_str = f1.read()
-
-    with open("geonames_pop.txt",'r') as f2:
-        pop_str = f2.read()
-
-    cty_polygons = json.loads(cty_str)
-    places_pts = json.loads(pop_str)
-
-    counties = shape_maker2(cty_polygons, 'countyname')
-    towns = shape_maker2(places_pts, 'asciiname')
-
-    root = Tk()
-    county_names = [(c[1]['countyname'],c[0]) for c in counties['features']]
-    town_names = [(t[1]['name'],t[0]) for t in towns['features']]
-    datasets = {'Counties':county_names, 'Towns':town_names}
-    gisGUI(root, datasets)
-    root.mainloop()
-
-if __name__ == '__main__':
-    main()

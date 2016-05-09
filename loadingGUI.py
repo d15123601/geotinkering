@@ -40,7 +40,7 @@ class loadingGUI():
         self.data_item = StringVar()
         self.data_dict = {}
 
-        self.gis_stack = [] # stack to store items to send to GIS
+        self.gis_stack = [] # out_stack to store items to send to GIS
 
         self.params_list = [self.param1,
                             self.param2,
@@ -51,7 +51,7 @@ class loadingGUI():
                             self.param7] # list to allow iterative assignment and retrieval of
                                     # params
 
-        self.gj_stack =  defaultdict(list) #stack to store geojson objects retrieved
+        self.gj_stack =  defaultdict(list) #out_stack to store geojson objects retrieved
 
         # Initialise the widgets
         self.mainframe = ttk.Frame(self.master)
@@ -317,7 +317,7 @@ class loadingGUI():
         new_item = self.selected_item.get()
         stack_contents = self.gis_stack_text.get()
         if new_item in stack_contents:
-            self.info_text.set('You already have this item in the stack;\n' +
+            self.info_text.set('You already have this item in the out_stack;\n' +
                                'Please choose anoher or proceed to GIS')
             pass
         else:
@@ -400,7 +400,7 @@ class loadingGUI():
         self.base_params['filter_values'] = self.param7.get()
         gj = self.get_geojson(self.base_params)
 
-        # create a stack of the geojson objects, only storing each one once
+        # create a out_stack of the geojson objects, only storing each one once
         self.gj_stack[self.base_params['layer']] = gj
         self.update_geoj_cb(self.gj_stack)
 

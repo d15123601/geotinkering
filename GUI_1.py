@@ -1,10 +1,185 @@
+""" Here we access geojson held in a textfile - it is then used to perform the
+    following tasks reqd for the GIS programming assignment.....
+
+    Specifically, we want to do the following:
+
+    Create a single polygon from the Union of all the polygons.
+    Compute the centroid of the single polygon.
+    Extract the points that lie within the single polygon.
+    Compute a convex hull and centroid for the extracted points
+    Compute the distance between the centroid of the single polygon and the centroid of the points that lie within the single polygon.
+    Create a representation of the line joining the two centroids
+    Geocode both centroids and add their names to the appropriate point as an attribute
+    Create shapefiles to store the results of the above. Bear in mind that a shapefile contains a single geometry type and is a set of thematically related features. Therefore you will need to create shapefiles as follows:
+    Combined polygon from Union
+    Points that lie within Combined Polygon
+    Convex hull of the points from above
+    Both centroids. Each should have an attribute to hold its name returned from the geocoding process.
+    Linestring representing the distance between the centroids
+
+"""
 from tkinter import *
 from tkinter import ttk
 from collections import defaultdict
 from tkinter import messagebox
 
 
-class loadingGUI():
+def main():
+    root = Tk()
+    LoadingGUI(root)
+    root.mainloop()
+
+
+class MyShape():
+    #todo add methods to reproject, perform geometric functions etc.
+    def __init__(self, geojson_obj, feature_id):
+        from shapely import geometry
+        self.crs = geojson_obj['crs']
+        self.bbox = geojson_obj['bbox']
+        self.features = [(f['properties'][feature_id],
+                          geometry.asShape(f['geometry']),
+                          f['properties']) for f in geojson_obj['features']]
+
+
+class GisGui():
+    def __init__(self, master, input_datasets):
+        # variables
+        self.dataset_ref = ""
+        self.ops_output = {}
+
+        self.dialog_text = StringVar()
+        self.dialog_text.set("Messages will display here")
+
+        self.dataset_list = [keys for keys in input_datasets.keys()]
+        self.dataset = input_datasets
+        self.cb_list = ['No gj_stack loaded']
+
+        self.ops_subject = StringVar()
+        self.ops_subject.set('')
+
+        # GUI creation
+        self.master = master
+
+        # Initialise all the widgets.
+        self.main_frame = ttk.Frame(self.master)
+
+        self.dialog = ttk.Label(self.main_frame, textvariable = self.dialog_text,
+                                foreground = 'cyan',
+                                background = 'blue', anchor = 'center')
+        self.selection_box = ttk.Labelframe(self.main_frame, text = 'Object Picker',
+                                width = 250, height = 500, borderwidth = 5,
+                                relief = 'sunken')
+        self.dataset_box = ttk.Labelframe(self.selection_box, text = 'Dataset Picker',
+                                width = 250, height = 100, borderwidth = 5,
+                                relief = 'sunken')
+        ttk.Label(self.dataset_box, text = 'Please choose a dataset from the list:',
+                  foreground = 'red', justify = 'left').grid(row = 0, column = 0)
+        self.datacb = ttk.Combobox(self.dataset_box, values= self.dataset_list, state='readonly')
+
+        self.datacb.current(1)
+        # set the selection event
+        self.cb_box = ttk.Labelframe(self.selection_box, text = 'Item Picker',
+                                width = 250, height = 400, borderwidth = 5,
+                                relief = 'sunken')
+        ttk.Label(self.cb_box, text = 'Please choose an item from the list:',
+                  foreground = 'red', justify = 'left').grid(row = 0, column = 0)
+        self.itemcb = ttk.Combobox(self.cb_box, values= self.cb_list, state='disabled')
+        self.itemcb.current(0)
+        # set the selection event
+        self.op_box = ttk.Labelframe(self.main_frame, text = 'Operations',
+                                    width = 250, height = 500,
+                                    borderwidth = 5,
+                                    relief = 'sunken')
+        self.btn_add = ttk.Button(self.op_box, width = 50, text = 'Add', command = self.choose_selected)
+        self.btn_merge = ttk.Button(self.op_box, width = 50, text = 'Merge',
+                                    command = self.merge_chosen, state = 'disabled')
+        self.btn_geocode = ttk.Button(self.op_box, width = 50, text = 'Geocode',
+                                    command = self.geocode_chosen, state = 'disabled')
+        self.btn_centroid = ttk.Button(self.op_box, width = 50, text = 'Centroid',
+                                    command = self.centroid_chosen, state = 'disabled')
+        self.btn_convexhull = ttk.Button(self.op_box, width = 50, text = 'Make Convex Hull',
+                                    command = self.convex_hull, state = 'disabled')
+        self.btn_line_join = ttk.Button(self.op_box, width = 50, text = 'Join with line',
+                                    command = self.line_join, state = 'disabled')
+        self.ops_frame = ttk.Labelframe(self.op_box, text = 'Items selected:',
+                                        relief = 'sunken')
+        self.subject_list = ttk.Label(self.ops_frame, textvariable = self.ops_subject,
+                                      anchor = 'w')
+        self.display_box = ttk.Labelframe(self.main_frame, text = 'Object Display',
+                                width = 500, height = 500, borderwidth = 5,
+                                relief = 'sunken')
+
+
+        #Lay out all the widgets
+        self.main_frame.grid(column = 0, row = 0, sticky = (N, S, E, W))
+        self.dialog.grid(row = 0, column = 0, columnspan = 3)
+        self.selection_box.grid(row = 1, column = 0, sticky = 'ns')
+        self.dataset_box.grid(row = 0, column = 0, sticky = 'ns')
+        self.datacb.grid(row = 1, column = 0, sticky = 'nsew')
+        self.cb_box.grid(sticky = 'nsew')
+        self.itemcb.grid(row = 1, column = 0, sticky = 'nsew')
+        self.op_box.grid(row = 1, column = 1, sticky = 'ns')
+        self.btn_add.grid(row = 0, column = 0)
+        self.btn_merge.grid(row = 1, column = 0)
+        self.btn_geocode.grid(row = 2, column = 0)
+        self.btn_centroid.grid(row = 3, column = 0)
+        self.btn_convexhull.grid(row = 4, column = 0)
+        self.btn_line_join.grid(row = 5, column = 0)
+        self.ops_frame.grid(sticky = 'nsew')
+        self.subject_list.grid(sticky = 'nsew')
+        self.display_box.grid(row = 1, column = 2, sticky = 'ns')
+
+        # Event handling
+        self.datacb_value = self.datacb.bind("<<ComboboxSelected>>", self.dataset_cb_newselection)
+        self.itemcb_value = self.itemcb.bind("<<ComboboxSelected>>", self.itemcb_newselection)
+
+    def dataset_cb_newselection(self, event):
+        print(event.widget)
+        owner = event.widget
+        self.value_of_combo = owner.get()
+        self.dialog_text.set("You have chosen - " + self.value_of_combo)
+        self.update_itemcb(self.value_of_combo)
+
+    def itemcb_newselection(self, event):
+        print(event.widget)
+        owner = event.widget
+        self.geo_item = owner.get()
+
+    def update_itemcb(self, dataset_name):
+        item_list = [i[0] for i in self.dataset[dataset_name]]
+        self.cb_list = 'Please select from below'
+        self.itemcb['values'] = item_list
+        self.itemcb.state(['!disabled', 'readonly'])
+
+    def add_cb_value(self):
+        self.cty = str(self.dataset_cb_newselection)
+        self.cty_stack.append(self.cty)
+
+    def choose_selected(self):
+        pass
+
+    def merge_chosen(self):
+        #TODO ensure >1 argument to this function
+        pass
+
+
+    def geocode_chosen(self):
+        #TODO ensure only 1 argument to this function
+        pass
+
+    def centroid_chosen(self):
+        pass
+
+
+    def convex_hull(self):
+        pass
+
+
+    def line_join(self):
+        pass
+
+
+class LoadingGUI():
     def __init__(self, master):
         self.master = master
         self.master.title("Dataset selection")
@@ -18,12 +193,12 @@ class loadingGUI():
 
         # Initialise variables here
         self.base_params = {'host': "mf2.dit.ie:8080",
-                           'layer': "cso:ctygeom",
-                           'srs_code': 29902,
-                           'properties': "",
-                           'geom_field': "",
-                           'filter_property': "",
-                           'filter_values': ""} # dict to store the  fetch params
+                            'layer': "cso:ctygeom",
+                            'srs_code': 29902,
+                            'properties': "",
+                            'geom_field': "",
+                            'filter_property': "",
+                            'filter_values': ""} # dict to store the  fetch params
 
         self.param1 = StringVar()
         self.param2 = StringVar()
@@ -40,15 +215,14 @@ class loadingGUI():
                             self.param5,
                             self.param6,
                             self.param7] # list to allow iterative assignment and retrieval of
-                                    # params
+        # params
 
-        self.gj_stack =  defaultdict(list) #stack to store geojson objects retrieved
-        self.sv_dialog = StringVar()
+        self.gj_stack =  defaultdict(list) #out_stack to store geojson objects retrieved
         self.prop_list = StringVar()
         self.prop_sample = StringVar()
         self.prop_sample.set('Data values will appear here')
         self.feature_property = StringVar()
-        self.stack = []
+        self.out_stack = []
         self.stack_text = []
         self.lv_stack = StringVar()
 
@@ -56,7 +230,7 @@ class loadingGUI():
         self.mainframe = ttk.Frame(self.master)
         self.label1 = ttk.Label(self.mainframe,
                                 text = "THIS GUI SUPPORTS INTERACTION WITH\n"+
-                                "A GEOSERVER.",
+                                       "A GEOSERVER.",
                                 foreground = 'black',
                                 relief = 'sunken',
                                 font =('Helvetica', '12'),
@@ -64,7 +238,7 @@ class loadingGUI():
                                 anchor = 'center')
         self.label2 = ttk.Label(self.mainframe,
                                 text = "Please use buttons to select datasets or enter custom\n"
-                                + "parameters using the boxes on the left",
+                                       + "parameters using the boxes on the left",
                                 foreground = 'blue',
                                 relief = 'sunken',
                                 anchor = 'center')
@@ -72,12 +246,13 @@ class loadingGUI():
                                           text = 'Enter parameters here:',
                                           relief = 'sunken')
         self.display_frame = ttk.LabelFrame(self.mainframe,
-                                          text = 'Current Parameters:',
-                                          relief = 'sunken')
+                                            text = 'Current Parameters:',
+                                            relief = 'sunken',
+                                            width = 30)
         self.button_frame = ttk.LabelFrame(self.mainframe,
                                            text = 'Select one of the datasets\n' +
                                                   'by clicking the button',
-                                          relief = 'sunken')
+                                           relief = 'sunken')
         self.geojson_nav_frame = ttk.LabelFrame(self.mainframe,
                                                 text = 'Please explore the gj_stack here',
                                                 relief = 'sunken')
@@ -153,24 +328,31 @@ class loadingGUI():
 
         self.button_County = ttk.Button(self.button_frame,
                                         text = 'County Polygons',
-                                        command = self.county_polygons)
+                                        command = self.county_polygons,
+                                        width = 30)
         self.button_Towns = ttk.Button(self.button_frame,
                                        text = 'Town Points',
-                                       command = self.town_points)
+                                       command = self.town_points,
+                                       width = 30)
         self.button_LargeTowns = ttk.Button(self.button_frame,
                                             text = 'Large Town Points',
-                                            command = self.large_town_points)
+                                            command = self.large_town_points,
+                                            width = 30)
         self.button_EDs = ttk.Button(self.button_frame,
                                      text = 'ED Polygons',
-                                     command = self.ed_polygons)
+                                     command = self.ed_polygons,
+                                     width = 30)
         self.button_Provinces = ttk.Button(self.button_frame,
                                            text = 'Province Polygons',
-                                           command = self.province_polygons)
+                                           command = self.province_polygons,
+                                           width = 30)
         self.button_SAs = ttk.Button(self.button_frame,
                                      text = 'SA Polygons',
-                                     command = self.sa_polygons)
+                                     command = self.sa_polygons,
+                                     width = 30)
         self.button_Fetch = ttk.Button(self.display_frame,
                                        text = '^ FETCH ^',
+                                       width = 40,
                                        command = self.fetch_geojson)
 
         # Bottom half of GUI
@@ -178,12 +360,8 @@ class loadingGUI():
         self.l_frame = ttk.LabelFrame(self.mainframe,
                                       text = 'Pick dataset and choose feature identifier')
         self.r_frame = ttk.LabelFrame(self.mainframe,
-                                      text= 'View stack here, and send to GIS')
-        self.dialog = ttk.Label(self.mainframe,
-                                textvariable = self.sv_dialog,
-                                foreground = 'blue',
-                                relief = 'sunken')
-        self.sv_dialog.set('Please choose the best name for the features of each dataset')
+                                      text= 'View out_stack here, and send to GIS')
+        #todo add a labelframe to display the geojson obj metadata
         self.cb_dataset = ttk.Combobox(self.l_frame)
         self.lbl_properties = ttk.Label(self.l_frame,
                                         text = 'Feature properties')
@@ -210,16 +388,16 @@ class loadingGUI():
                                 state = 'disabled',
                                 listvariable = self.lv_stack
                                 )
-        self.btn_confirm_send = ttk.Button(self.l_frame,
-                                           text = 'Confirm and Add to Stack',
-                                           command = self.confirm,
-                                           )
-        self.btn_clear_stack = ttk.Button(self.r_frame,
-                                          text = 'Clear Stack',
-                                          command = self.clear_stack)
-        self.btn_gis_open = ttk.Button(self.r_frame,
-                                       text = 'Open GIS with current Stack',
-                                       command = self.open_gis)
+        self.button_confirm_send = ttk.Button(self.l_frame,
+                                              text = 'Confirm and Add to Stack',
+                                              command = self.confirm,
+                                              )
+        self.button_clear_stack = ttk.Button(self.r_frame,
+                                             text = 'Clear Stack',
+                                             command = self.clear_stack)
+        self.button_gis_open = ttk.Button(self.r_frame,
+                                          text = 'Open GIS with current Stack',
+                                          command = lambda: self.open_gis(self.out_stack))
         self.info_text = ttk.Label(self.mainframe,
                                    text = 'Information messages will appear here',
                                    foreground = 'blue')
@@ -236,9 +414,6 @@ class loadingGUI():
         self.lbl_p5.grid(row = 4, column = 0, sticky = 'ew')
         self.lbl_p6.grid(row = 5, column = 0, sticky = 'ew')
         self.lbl_p7.grid(row = 6, column = 0, sticky = 'ew')
-        self.button_Fetch.grid(row = 7, column = 0,
-                               columnspan= 2,
-                               sticky = 'ew')
         self.entry1.grid(row = 0, column = 1, sticky = 'ew')
         self.entry2.grid(row = 1, column = 1, sticky = 'ew')
         self.entry3.grid(row = 2, column = 1, sticky = 'ew')
@@ -256,6 +431,9 @@ class loadingGUI():
         self.display5.grid(row = 4, sticky = 'ew')
         self.display6.grid(row = 5, sticky = 'ew')
         self.display7.grid(row = 6, sticky = 'ew')
+        self.button_Fetch.grid(row = 7, column = 0,
+                               sticky = 'ew',
+                               columnspan = 2)
 
         for child, i in zip(self.display_frame.winfo_children(), self.params_list):
             child.configure(text = i.get())
@@ -267,19 +445,20 @@ class loadingGUI():
         self.button_Provinces.grid(row = 3, sticky = 'ew')
         self.button_SAs.grid(row = 4, sticky = 'ew')
         self.button_Towns.grid(row = 5, sticky = 'ew')
-        self.l_frame.grid(row = 3, column = 0, sticky = 'new')
-        self.r_frame.grid(row = 3, column = 1, sticky = 'new')
-        self.dialog.grid(row = 0, columnspan = 2, sticky = 'new')
+        self.l_frame.grid(row = 3, column = 0, sticky = 'ew')
+        self.r_frame.grid(row = 3, column = 1,
+                          sticky = 'ew',
+                          columnspan = 2)
         self.cb_dataset.grid(row = 1, sticky = 'ew')
         self.lbl_properties.grid(row = 2)
         self.lb_properties.grid(row = 3, sticky = 'sew')
-        self.btn_confirm_send.grid(row = 4, column = 0, sticky ='ew')
+        self.button_confirm_send.grid(row = 4, column = 0, sticky ='ew')
         self.lbl_example.grid(row = 3, column = 0, sticky = 'sew')
-        self.lb_stack.grid(row = 1, column = 0, sticky = 'nw')
-        self.btn_gis_open.grid(row = 2, column = 0,
-                               sticky = 'sew')
-        self.btn_clear_stack.grid(row = 3, column = 0,
-                               sticky = 'sew')
+        self.lb_stack.grid(row = 1, column = 0, sticky = 'sw')
+        self.button_gis_open.grid(row = 2, column = 0,
+                                  sticky = 'sew')
+        self.button_clear_stack.grid(row = 3, column = 0,
+                                     sticky = 'sew')
         self.info_text.grid(row = 4, columnspan = 4)
 
         # Event Management
@@ -288,7 +467,7 @@ class loadingGUI():
 
 
     def clear_stack(self):
-        self.stack = []
+        self.out_stack = []
         self.stack_text = []
         self.lv_stack.set('')
 
@@ -316,62 +495,34 @@ class loadingGUI():
         #todo add exception handling for no item selected
         ds_name = self.cb_dataset.get()
         current_dataset = self.gj_stack[ds_name]
-        if ds_name in [i[2] for i in self.stack]:
-            messagebox.showerror('Info','The dataset is already in the stack')
+        if ds_name in [i[2] for i in self.out_stack]:
+            messagebox.showerror('Info','The dataset is already in the out_stack')
             pass
         else:
             try:
                 feature_name = self.lb_properties.get(self.lb_properties.curselection())
-                self.stack.append([current_dataset, feature_name, ds_name])
+                self.out_stack.append([current_dataset, feature_name, ds_name])
                 #todo format the below string to align nicely
                 self.stack_text.append('Dataset: {} --\t\t Feature Name: {}'.format(ds_name,feature_name))
                 self.lv_stack.set(self.stack_text)
-                self.info_text.set('Please examine the item.')
+                self.info_text.configure(text = 'Please examine the item.')
             except TclError:
-                self.info_text.set('There is no item selected.')
-    def open_gis(self):
-        pass
+                self.info_text.configure(text = 'There is no item selected.')
 
 
-    def add_to_stack(self):
-        new_item = self.selected_item.get()
-        stack_contents = self.gis_stack_text.get()
-        if new_item in stack_contents:
-            self.info_text.set('You already have this item in the stack;\n' +
-                               'Please choose anoher or proceed to GIS')
-            pass
+    def open_gis(self, stack):
+        op_dict = defaultdict()
+        if stack:
+            for obj in stack:
+                op_dict[obj[2]] = MyShape(obj[0],obj[1])
+            self.new_window = Toplevel(self.master)
+            self.my_gis = GisGui(self.new_window, op_dict)
+            LoadingGUI.catch_destroy()
+
         else:
-            self.gis_stack.append(self.gj_stack[new_item])
-            self.gis_stack_text.set(stack_contents + new_item + '\n')
-
-    def inspect_item(self):
-        if self.selected_item.get() != "":
-            item = self.gj_stack[self.selected_item.get()]
-            meta, data_hdgs, data_dict = self.geoj_exploder(item)
-            self.meta_list.set(meta)
-            self.data_headings_list.set(data_hdgs)
-            self.data_dict = data_dict
-            self.info_text.set('Please select the name of the feature from the Feature Properties list')
-        else:
-            self.info_text.set('There is no item selected.')
-            pass
-
-    def geoj_exploder(self, gj_obj):
-        l1 = [(k,v) for k,v in gj_obj.items()]
-        i = gj_obj['features'][0]['properties']
-        l2 = list(i.keys())
-        d = i
-        return [l1, l2, d]
-
-    def send_to_gis(self):
-        #TODO add check to see if feature name is highlighted
-        #TODO add item to hold best name of feature
-        if self.data_item.get() == '':
             self.info_text.set('Please highlight the feature name and send again:')
             pass
-        else:
-            item = self.gj_stack[self.selected_item.get()]
-            self.gis_stack.append(item)
+
 
     def load_params(self):
         for child, i in zip(self.display_frame.winfo_children(), self.params_list):
@@ -402,8 +553,12 @@ class loadingGUI():
         self.load_params()
 
     def fetch_geojson(self):
+
         #TODO Set styles to show when gj_stack is loading
         try:
+            self.info_text.configure(text = 'LOADING DATA....',
+                                 foreground = 'red')
+            self.mainframe.update_idletasks()
             btn = self.button_Fetch
             btn.configure(style = 'Wait.TButton')
             self.param1.set(self.base_params['host'])
@@ -420,19 +575,15 @@ class loadingGUI():
             self.base_params['filter_property'] = self.param6.get()
             self.base_params['filter_values'] = self.param7.get()
             gj = self.get_geojson(self.base_params)
-
-            # create a stack of the geojson objects, only storing each one once
+            # create a out_stack of the geojson objects, only storing each one once
             self.gj_stack[self.base_params['layer']] = gj
-            self.label1.configure(text = 'Request Executed Successfully')
+            self.info_text.configure(text = 'Request Executed Successfully',
+                                     foreground = 'green')
             self.cb_dataset['values'] = [i for i in self.gj_stack.keys()]
         except Exception:
-            self.label1.configure(text = 'Error With Request Parameters: Please Try Again')
+            self.info_text.configure(text = 'Error With Request Parameters: Please Try Again',
+                                     foreground = 'red')
 
-
-
-    def catch_destroy(self):
-        if messagebox.askokcancel("Quit", "Do you really want to quit?"):
-            self.master.destroy()
 
     def get_geojson(self, params):
         """
@@ -540,10 +691,6 @@ class loadingGUI():
         except httplib2.HttpLib2Error as e:
             print(e)
 
-def main():
-    root = Tk()
-    loadingGUI(root)
-    root.mainloop()
 
 if __name__ == '__main__':
     main()

@@ -30,7 +30,7 @@ class data_prep:
         self.l_frame = ttk.LabelFrame(self.mainframe,
                                       text = 'Pick dataset and choose feature identifier')
         self.r_frame = ttk.LabelFrame(self.mainframe,
-                                      text= 'View stack here, and send to GIS')
+                                      text= 'View out_stack here, and send to GIS')
         self.dialog = ttk.Label(self.mainframe,
                                 textvariable = self.sv_dialog,
                                 foreground = 'blue',
@@ -123,7 +123,7 @@ class data_prep:
         ds_name = self.cb_dataset.get()
         current_dataset = self.data[ds_name]
         if ds_name in [i[2] for i in self.stack]:
-            messagebox.showerror('Info','The dataset is already in the stack')
+            messagebox.showerror('Info','The dataset is already in the out_stack')
             pass
         else:
             feature_name = self.lb_properties.get(self.lb_properties.curselection())

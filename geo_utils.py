@@ -46,7 +46,7 @@ def plot_shapes(shapes):
     plt.show()
 
 
-def shape_maker(geojson_obj):
+def shape_maker(geojson_obj, id):
     """
     This function takes a geojson object and returns the pertinent gj_stack
     for this application.
