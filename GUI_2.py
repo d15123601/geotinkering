@@ -106,6 +106,11 @@ class MicksGis:
                                            listvariable = self.lb_feature_data_source,
                                            width = 40)
                 # Functions
+            self.btn_feature_display = ttk.Button(self.frm_data_pane_middle,
+                                          text = 'DISPLAY SELECTED',
+                                          style = 'Wait.TButton',
+                                          command = lambda: self.display(self.lb_features.get(
+                                                                         self.lb_features.curselection())))
             self.btn_merge_polygons = ttk.Button(self.frm_functions,
                                                  width = 20,
                                                  cursor = 'hand1',
@@ -148,7 +153,8 @@ class MicksGis:
             self.cb_datasets.grid(row = 0, column = 0, sticky = 'ew')
 
             self.frm_data_pane_middle.grid(row = 1, column = 0, sticky = 'w')
-            self.lb_features.grid(row = 0, column = 0, sticky = 'ew')
+            self.btn_feature_display.grid(row = 0, column = 0, sticky = 'ew')
+            self.lb_features.grid(row = 1, column = 0, sticky = 'ew')
 
             self.frm_data_pane_bottom.grid(row = 2, column = 0, sticky = 'w')
             self.lb_feature_data.grid(row = 0, column = 0, sticky = 'ew')
@@ -543,8 +549,8 @@ class LoadingGUI():
             for obj in stack:
                 op_dict[obj[2]] = MyShape(obj[0],obj[1])
             self.new_window = Toplevel(self.master)
-            self.my_gis = GisGui(self.new_window, op_dict)
-            LoadingGUI.catch_destroy()
+            self.my_gis = MicksGis(self.new_window, op_dict)
+
 
         else:
             self.info_text.set('Please highlight the feature name and send again:')

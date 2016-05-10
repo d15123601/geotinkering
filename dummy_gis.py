@@ -6,6 +6,17 @@ import json
 from collections import defaultdict
 from tkinter import *
 from tkinter import ttk
+from descartes.patch import PolygonPatch
+import shapely
+import shapely.geometry as geometry
+from shapely.ops import cascaded_union
+import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
+
+
+"""
+thanks to this url for plotting ->  https://gist.github.com/urschrei/6436526
+"""
 
 
 def main():
@@ -15,8 +26,12 @@ def main():
     with open("geonames_pop.txt",'r') as f2:
         pop_str = f2.read()
 
+    with open("provinces.txt",'r') as f2:
+        prov_str = f2.read()
+
     cty_polygons = json.loads(cty_str)
     places_pts = json.loads(pop_str)
+    prov_polygons = json.loads(prov_str)
     stack = []
     stack.append([cty_polygons, 'countyname', 'counties'])
     stack.append([places_pts, 'asciiname', 'towns'])
@@ -25,174 +40,212 @@ def main():
     if stack:
         for obj in stack:
             gis_data[obj[2]] = MyShape(obj[0], obj[1])
-
+    provs = []
+    for f in prov_polygons['features']:
+        provs.append(geometry.asShape(f['geometry']))
+    ireland = cascaded_union(provs)
     root = Tk()
-    MicksGis(root, gis_data)
+    MicksGis(root, gis_data, ireland)
     root.mainloop()
 
 
 class MicksGis:
-    """
-    This class will construct the gis gui.
-    We pass in the collection of MyShape objects.
-    """
-    def __init__(self, master, datasets):
-        self.master = master
-        self.datasets = datasets
-        self.master.title("SIMPLE GIS")
+        """
+        This class will construct the gis gui.
+        We pass in the collection of MyShape objects.
+        """
+        def __init__(self, master, datasets, ireland):
+            self.master = master
+            self.datasets = datasets
+            self.bg = ireland
+            self.current_dataset = ""
+            self.master.title("SIMPLE GIS")
 
-        # Set Button style
-        s = ttk.Style()
-        s.configure('Wait.TButton',foreground = 'red', state = 'disabled')
-        s.configure('Go.TButton', foreground = 'green', state = 'active')
+            # Set Button style
+            s = ttk.Style()
+            s.configure('Wait.TButton',foreground = 'red', state = 'disabled')
+            s.configure('Go.TButton', foreground = 'green', state = 'active')
 
-        # Declaring variables
-        self.cb_datasets_source = []
-        self.cb_datasets_source = [d for d in self.datasets]
-        self.lb_features_source = StringVar()
-        self.lb_feature_data_source = StringVar()
-        self.dialog_text = StringVar()
+            # Declaring variables
+            self.cb_datasets_source = []
+            self.cb_datasets_source = [d for d in self.datasets]
+            self.lb_features_source = StringVar()
+            self.lb_feature_data_source = StringVar()
+            self.dialog_text = StringVar()
+            self.dialog_text.set('Messages will appear here.')
 
-        # widget declarations
-        self.frm_mainframe = ttk.Frame(self.master,
-                                   )
-        self.lbl_message = ttk.Label(self.master,
-                                     text = 'Messages will appear here.',
-                                     font = ('Helvetica', 16),
-                                     foreground = 'blue',
-                                     textvariable = self.dialog_text)
+            # widget declarations
+            self.frm_mainframe = ttk.Frame(self.master,
+                                       )
+            self.lbl_message = ttk.Label(self.master,
+                                         font = ('Helvetica', 16),
+                                         foreground = 'blue',
+                                         textvariable = self.dialog_text)
 
-        # Set up frames
-        self.frm_data_pane_top = ttk.LabelFrame(self.frm_mainframe,
-                                                text = 'Dataset Explorer',
-                                                width = 40)
-        self.frm_data_pane_middle = ttk.LabelFrame(self.frm_mainframe,
-                                                   text = 'Feature Explorer',
-                                                   width = 40)
-        self.frm_data_pane_bottom = ttk.LabelFrame(self.frm_mainframe,
-                                                   text = 'Feature Data',
-                                                   width = 40)
-        self.frm_functions = ttk.LabelFrame(self.frm_mainframe,
-                                            text = 'Functions')
-        self.frm_display = ttk.LabelFrame(self.frm_mainframe,
-                                          text = 'Features Displayed Here',
-                                          borderwidth = 5,
-                                          relief = 'groove')
-        
-        #Set up widgets
-            # Data selection and viewing
-        self.cb_datasets = ttk.Combobox(self.frm_data_pane_top,
-                                        height = 5,
-                                        values = self.cb_datasets_source,
-                                        width = 40)
-        self.lb_features = Listbox(self.frm_data_pane_middle,
-                                   height = 10,
-                                   listvariable = self.lb_features_source,
-                                   width = 40,
-                                   state = 'disabled')
-        self.lb_feature_data = Listbox(self.frm_data_pane_bottom,
+            # Set up frames
+            self.frm_data_pane_top = ttk.LabelFrame(self.frm_mainframe,
+                                                    text = 'Dataset Explorer',
+                                                    width = 40)
+            self.frm_data_pane_middle = ttk.LabelFrame(self.frm_mainframe,
+                                                       text = 'Feature Explorer',
+                                                       width = 40)
+            self.frm_data_pane_bottom = ttk.LabelFrame(self.frm_mainframe,
+                                                       text = 'Feature Data',
+                                                       width = 40)
+            self.frm_functions = ttk.LabelFrame(self.frm_mainframe,
+                                                text = 'Functions')
+            self.frm_display = ttk.LabelFrame(self.frm_mainframe,
+                                              text = 'Features Displayed Here',
+                                              borderwidth = 5,
+                                              relief = 'groove')
+
+            #Set up widgets
+                # Data selection and viewing
+            self.cb_datasets = ttk.Combobox(self.frm_data_pane_top,
+                                            height = 5,
+                                            values = self.cb_datasets_source,
+                                            width = 40)
+            self.lb_features = Listbox(self.frm_data_pane_middle,
                                        height = 10,
-                                       listvariable = self.lb_feature_data_source,
-                                       width = 40)
-            # Functions
-        self.btn_merge_polygons = ttk.Button(self.frm_functions,
-                                             width = 20,
-                                             cursor = 'hand1',
-                                             text = 'MERGE',
-                                             style = 'Wait.TButton',
-                                             command = self.merge_polys)
-        self.btn_points_within_poly = ttk.Button(self.frm_functions,
-                                             width = 20,
-                                             cursor = 'hand1',
-                                             text = 'Ps in POLY',
-                                             style = 'Wait.TButton',
-                                             command = self.points_within_poly)
-        self.btn_centroid = ttk.Button(self.frm_functions,
-                                             width = 20,
-                                             cursor = 'hand1',
-                                             text = 'CENTROID',
-                                             style = 'Wait.TButton',
-                                             command = self.centroid)
-        self.btn_make_shp = ttk.Button(self.frm_functions,
-                                             width = 20,
-                                             cursor = 'hand1',
-                                             text = 'MAKE .SHP',
-                                             style = 'Wait.TButton',
-                                             command = self.make_shp)
-        self.geocode = ttk.Button(self.frm_functions,
-                                             width = 20,
-                                             cursor = 'hand1',
-                                             text = 'GEOCODE',
-                                             style = 'Wait.TButton',
-                                             command = self.geocode)
+                                       listvariable = self.lb_features_source,
+                                       width = 40,
+                                       state = 'disabled')
+            self.lb_feature_data = Listbox(self.frm_data_pane_bottom,
+                                           height = 10,
+                                           listvariable = self.lb_feature_data_source,
+                                           width = 40)
+                # Functions
+            self.btn_feature_display = ttk.Button(self.frm_data_pane_middle,
+                                          text = 'DISPLAY SELECTED',
+                                          style = 'Wait.TButton',
+                                          command = lambda: self.display(self.lb_features.get(
+                                                                         self.lb_features.curselection())))
+            self.btn_merge_polygons = ttk.Button(self.frm_functions,
+                                                 width = 20,
+                                                 cursor = 'hand1',
+                                                 text = 'MERGE',
+                                                 style = 'Wait.TButton',
+                                                 command = self.merge_polys)
+            self.btn_points_within_poly = ttk.Button(self.frm_functions,
+                                                 width = 20,
+                                                 cursor = 'hand1',
+                                                 text = 'Ps in POLY',
+                                                 style = 'Wait.TButton',
+                                                 command = self.points_within_poly)
+            self.btn_centroid = ttk.Button(self.frm_functions,
+                                                 width = 20,
+                                                 cursor = 'hand1',
+                                                 text = 'CENTROID',
+                                                 style = 'Wait.TButton',
+                                                 command = self.centroid)
+            self.btn_make_shp = ttk.Button(self.frm_functions,
+                                                 width = 20,
+                                                 cursor = 'hand1',
+                                                 text = 'MAKE .SHP',
+                                                 style = 'Wait.TButton',
+                                                 command = self.make_shp)
+            self.geocode = ttk.Button(self.frm_functions,
+                                                 width = 20,
+                                                 cursor = 'hand1',
+                                                 text = 'GEOCODE',
+                                                 style = 'Wait.TButton',
+                                                 command = self.geocode)
 
 
 
 
-        # widget placement
-        self.lbl_message.grid(row = 0, column = 0)
+            # widget placement
+            self.lbl_message.grid(row = 0, column = 0)
 
-        self.frm_mainframe.grid(row = 1, column = 0)
-        self.frm_data_pane_top.grid(row = 0, column = 0, sticky = 'w')
-        self.cb_datasets.grid(row = 0, column = 0, sticky = 'ew')
+            self.frm_mainframe.grid(row = 1, column = 0)
+            self.frm_data_pane_top.grid(row = 0, column = 0, sticky = 'w')
+            self.cb_datasets.grid(row = 0, column = 0, sticky = 'ew')
 
-        self.frm_data_pane_middle.grid(row = 1, column = 0, sticky = 'w')
-        self.lb_features.grid(row = 0, column = 0, sticky = 'ew')
+            self.frm_data_pane_middle.grid(row = 1, column = 0, sticky = 'w')
+            self.lb_features.grid(row = 0, column = 0, sticky = 'ew')
+            self.btn_feature_display.grid(row = 1, column = 0, sticky = 'ew')
 
-        self.frm_data_pane_bottom.grid(row = 2, column = 0, sticky = 'w')
-        self.lb_feature_data.grid(row = 0, column = 0, sticky = 'ew')
+            self.frm_data_pane_bottom.grid(row = 2, column = 0, sticky = 'w')
+            self.lb_feature_data.grid(row = 0, column = 0, sticky = 'ew')
 
-        self.frm_functions.grid(row = 3, column = 0,
-                                columnspan = 5)
-        self.btn_merge_polygons.grid(row = 0, column = 0)
-        self.btn_points_within_poly.grid(row = 0, column = 1)
-        self.btn_centroid.grid(row = 0, column = 2)
-        self.btn_make_shp.grid(row = 0, column = 3)
-        self.geocode.grid(row = 0, column = 4)
-        self.frm_display.grid(row = 0, column = 2,
-                              rowspan = 2,
-                              columnspan = 2)
+            self.frm_functions.grid(row = 3, column = 0,
+                                    columnspan = 5)
+            self.btn_merge_polygons.grid(row = 0, column = 0)
+            self.btn_points_within_poly.grid(row = 0, column = 1)
+            self.btn_centroid.grid(row = 0, column = 2)
+            self.btn_make_shp.grid(row = 0, column = 3)
+            self.geocode.grid(row = 0, column = 4)
+            self.frm_display.grid(row = 0, column = 2,
+                                  rowspan = 2,
+                                  columnspan = 2)
 
-        # event handling
-        _ = self.cb_datasets.bind("<<ComboboxSelected>>", self.dataset_cb_newselection)
-        _ = self.lb_features.bind("<<ListboxSelect>>", self.feature_lb_newselection)
+            # event handling
+            _ = self.cb_datasets.bind("<<ComboboxSelected>>", self.dataset_cb_newselection)
+            _ = self.lb_features.bind("<<ListboxSelect>>", self.feature_lb_newselection)
 
 
-        # functions
-    def dataset_cb_newselection(self, event):
-        owner = event.widget
-        self.value_of_combo = owner.get()
-        self.dialog_text.set("You have chosen - " + self.value_of_combo.capitalize())
-        self.update_feature_explorer(self.value_of_combo)
+            # functions
 
-    def update_feature_explorer(self, dataset_name):
-        item_list = list(self.datasets[dataset_name].features.keys())
-        self.lb_features_source.set(item_list)
-        self.lb_features.configure(state = 'normal')
+        def display(self, feature_name):
+            # todo get the overall country outline to use as a background for this map
+            geom = self.datasets[self.current_dataset].features[feature_name][0]
+            if geom.geom_type != ('Polygon' or 'MultiPolygon'):
+                self.dialog_text.set('This geometry is invalid. Please use a different dataset')
+                pass
+            geom = cascaded_union(geom) #to dissolve multipolygons
+            geom_bdry = geom.boundary
+            minx, miny, maxx, maxy = self.bg.bounds
+            w, h = maxx - minx, maxy - miny
+            fig = plt.figure(1, figsize = (5, 5), dpi = 180, frameon = False)
+            ax = fig.add_subplot(111)
+            ax.set_xlim(minx,maxx)
+            ax.set_ylim(miny,maxy)
+            for poly in self.bg:
+                bg_patch = PolygonPatch(poly, fc = 'lightsage', ec = 'k', alpha = 1)
+                ax.add_patch(bg_patch)
 
-    def feature_lb_newselection(self, event):
-        owner = event.widget
-        self.value_of_combo = owner.get(owner.curselection())
-        self.dialog_text.set("You have chosen - " + self.value_of_combo.capitalize())
-        self.update_feature_data_explorer(self.value_of_combo)
+            if geom.geom_type == 'MultiPolygon':
+                for poly in geom:
+                    patch = PolygonPatch(poly, fc= 'teal', ec='navy', alpha = 0.5)
+                    ax.add_patch(patch)
+            else:
+                patch = PolygonPatch(geom, fc='teal', ec='navy', alpha = 0.5)
+                ax.add_patch(patch)
+            plt.show()
 
-    def update_feature_data_explorer(self, feature_name):
-        current_dataset = self.cb_datasets.get()
-        properties = self.datasets[current_dataset].features[feature_name][1]
-        op_list = ["{} : {}".format(k,v) for k, v in properties.items()]
-        self.lb_feature_data_source.set(op_list)
-        self.lb_feature_data.configure(state = 'normal')
+        def dataset_cb_newselection(self, event):
+            self.lb_feature_data_source.set([]) # wipe the feature data source
+            self.current_dataset = event.widget.get()
+            self.dialog_text.set("You have chosen - " + self.current_dataset.capitalize())
+            self.update_feature_explorer(self.current_dataset)
 
-    def merge_polys(self):
-        pass
-    def points_within_poly(self):
-        pass
-    def centroid(self):
-        pass
-    def make_shp(self):
-        pass
-    def geocode(self):
-        pass
+        def update_feature_explorer(self, dataset_name):
+            item_list = list(self.datasets[dataset_name].features.keys())
+            self.lb_features_source.set(item_list)
+            self.lb_features.configure(state = 'normal')
+
+        def feature_lb_newselection(self, event):
+            owner = event.widget
+            self.value_of_combo = owner.get(owner.curselection())
+            self.dialog_text.set("You have chosen - " + self.value_of_combo.capitalize())
+            self.update_feature_data_explorer(self.value_of_combo)
+
+        def update_feature_data_explorer(self, feature_name):
+            properties = self.datasets[self.current_dataset].features[feature_name][1]
+            op_list = ["{} : {}".format(k,v) for k, v in properties.items()]
+            self.lb_feature_data_source.set(op_list)
+            self.lb_feature_data.configure(state = 'normal')
+
+        def merge_polys(self):
+            pass
+        def points_within_poly(self):
+            pass
+        def centroid(self):
+            pass
+        def make_shp(self):
+            pass
+        def geocode(self):
+            pass
 
 
 if __name__ == main():
