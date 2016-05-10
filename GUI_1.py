@@ -37,9 +37,9 @@ class MyShape():
         self.crs = geojson_obj['crs']
         self.type = geojson_obj['type']
         self.bbox = geojson_obj['bbox']
-        self.features = [(f['properties'][feature_id],
-                          geometry.asShape(f['geometry']),
-                          f['properties']) for f in geojson_obj['features']]
+        # create a dict of {name: (geom, properties)} for each feature in the dataset
+        self.features = {f['properties'][feature_id]:(geometry.asShape(f['geometry']),f['properties'])
+                          for f in geojson_obj['features']}
 
 
 class GisGui():
@@ -148,7 +148,6 @@ class GisGui():
 
     def update_itemcb(self, dataset_name):
         item_list = [i[0] for i in self.dataset[dataset_name]]
-        self.cb_list = 'Please select from below'
         self.itemcb['values'] = item_list
         self.itemcb.state(['!disabled', 'readonly'])
 

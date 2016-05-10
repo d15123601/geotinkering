@@ -38,6 +38,7 @@ class MicksGis:
     """
     def __init__(self, master, datasets):
         self.master = master
+        self.datasets = datasets
         self.master.title("SIMPLE GIS")
 
         # Set Button style
@@ -46,9 +47,11 @@ class MicksGis:
         s.configure('Go.TButton', foreground = 'green', state = 'active')
 
         # Declaring variables
-        self.cb_datasets_source = StringVar()
+        self.cb_datasets_source = []
+        self.cb_datasets_source = [d for d in self.datasets]
         self.lb_features_source = StringVar()
         self.lb_feature_data_source = StringVar()
+        self.dialog_text = StringVar()
 
         # widget declarations
         self.frm_mainframe = ttk.Frame(self.master,
@@ -56,7 +59,8 @@ class MicksGis:
         self.lbl_message = ttk.Label(self.master,
                                      text = 'Messages will appear here.',
                                      font = ('Helvetica', 16),
-                                     foreground = 'blue')
+                                     foreground = 'blue',
+                                     textvariable = self.dialog_text)
 
         # Set up frames
         self.frm_data_pane_top = ttk.LabelFrame(self.frm_mainframe,
@@ -79,12 +83,13 @@ class MicksGis:
             # Data selection and viewing
         self.cb_datasets = ttk.Combobox(self.frm_data_pane_top,
                                         height = 5,
-                                        textvariable = self.cb_datasets_source,
+                                        values = self.cb_datasets_source,
                                         width = 40)
         self.lb_features = Listbox(self.frm_data_pane_middle,
                                    height = 10,
                                    listvariable = self.lb_features_source,
-                                   width = 40)
+                                   width = 40,
+                                   state = 'disabled')
         self.lb_feature_data = Listbox(self.frm_data_pane_bottom,
                                        height = 10,
                                        listvariable = self.lb_feature_data_source,
@@ -148,7 +153,36 @@ class MicksGis:
                               rowspan = 2,
                               columnspan = 2)
 
+        # event handling
+        _ = self.cb_datasets.bind("<<ComboboxSelected>>", self.dataset_cb_newselection)
+        _ = self.lb_features.bind("<<ListboxSelect>>", self.feature_lb_newselection)
+
+
         # functions
+    def dataset_cb_newselection(self, event):
+        owner = event.widget
+        self.value_of_combo = owner.get()
+        self.dialog_text.set("You have chosen - " + self.value_of_combo.capitalize())
+        self.update_feature_explorer(self.value_of_combo)
+
+    def update_feature_explorer(self, dataset_name):
+        item_list = list(self.datasets[dataset_name].features.keys())
+        self.lb_features_source.set(item_list)
+        self.lb_features.configure(state = 'normal')
+
+    def feature_lb_newselection(self, event):
+        owner = event.widget
+        self.value_of_combo = owner.get(owner.curselection())
+        self.dialog_text.set("You have chosen - " + self.value_of_combo.capitalize())
+        self.update_feature_data_explorer(self.value_of_combo)
+
+    def update_feature_data_explorer(self, feature_name):
+        current_dataset = self.cb_datasets.get()
+        properties = self.datasets[current_dataset].features[feature_name][1]
+        op_list = ["{} : {}".format(k,v) for k, v in properties.items()]
+        self.lb_feature_data_source.set(op_list)
+        self.lb_feature_data.configure(state = 'normal')
+
     def merge_polys(self):
         pass
     def points_within_poly(self):
