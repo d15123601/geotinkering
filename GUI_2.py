@@ -22,6 +22,11 @@ from tkinter import *
 from tkinter import ttk
 from collections import defaultdict
 from tkinter import messagebox
+from shapely.ops import cascaded_union
+import shapely.geometry as geometry
+from descartes import PolygonPatch
+import matplotlib.pyplot as plt
+import json
 
 
 def main():
@@ -48,8 +53,20 @@ class MicksGis:
         We pass in the collection of MyShape objects.
         """
         def __init__(self, master, datasets):
+
+            # setup the background data for the display of data
+            with open("provinces.txt",'r') as f2:
+                prov_str = f2.read()
+            prov_polygons = json.loads(prov_str)
+            provs = []
+            for f in prov_polygons['features']:
+                provs.append(geometry.asShape(f['geometry']))
+            self.bg = cascaded_union(provs)
+
+
             self.master = master
             self.datasets = datasets
+            self.current_dataset = ""
             self.master.title("SIMPLE GIS")
 
             # Set Button style
@@ -63,12 +80,12 @@ class MicksGis:
             self.lb_features_source = StringVar()
             self.lb_feature_data_source = StringVar()
             self.dialog_text = StringVar()
+            self.dialog_text.set('Messages will appear here.')
 
             # widget declarations
             self.frm_mainframe = ttk.Frame(self.master,
                                        )
             self.lbl_message = ttk.Label(self.master,
-                                         text = 'Messages will appear here.',
                                          font = ('Helvetica', 16),
                                          foreground = 'blue',
                                          textvariable = self.dialog_text)
@@ -153,8 +170,8 @@ class MicksGis:
             self.cb_datasets.grid(row = 0, column = 0, sticky = 'ew')
 
             self.frm_data_pane_middle.grid(row = 1, column = 0, sticky = 'w')
-            self.btn_feature_display.grid(row = 0, column = 0, sticky = 'ew')
-            self.lb_features.grid(row = 1, column = 0, sticky = 'ew')
+            self.lb_features.grid(row = 0, column = 0, sticky = 'ew')
+            self.btn_feature_display.grid(row = 1, column = 0, sticky = 'ew')
 
             self.frm_data_pane_bottom.grid(row = 2, column = 0, sticky = 'w')
             self.lb_feature_data.grid(row = 0, column = 0, sticky = 'ew')
@@ -176,11 +193,38 @@ class MicksGis:
 
 
             # functions
+
+        def display(self, feature_name):
+            geom = self.datasets[self.current_dataset].features[feature_name][0]
+            if geom.geom_type != ('Polygon' or 'MultiPolygon'):
+                self.dialog_text.set('This geometry is invalid. Please use a different dataset')
+                pass
+            geom = cascaded_union(geom) #to dissolve multipolygons
+            geom_bdry = geom.boundary
+            minx, miny, maxx, maxy = self.bg.bounds
+            w, h = maxx - minx, maxy - miny
+            fig = plt.figure(1, figsize = (5, 5), dpi = 180, frameon = False)
+            ax = fig.add_subplot(111)
+            ax.set_xlim(minx,maxx)
+            ax.set_ylim(miny,maxy)
+            for poly in self.bg:
+                bg_patch = PolygonPatch(poly, fc = 'lightsage', ec = 'k', alpha = 1)
+                ax.add_patch(bg_patch)
+
+            if geom.geom_type == 'MultiPolygon':
+                for poly in geom:
+                    patch = PolygonPatch(poly, fc= 'teal', ec='navy', alpha = 0.5)
+                    ax.add_patch(patch)
+            else:
+                patch = PolygonPatch(geom, fc='teal', ec='navy', alpha = 0.5)
+                ax.add_patch(patch)
+            plt.show()
+
         def dataset_cb_newselection(self, event):
-            owner = event.widget
-            self.value_of_combo = owner.get()
-            self.dialog_text.set("You have chosen - " + self.value_of_combo.capitalize())
-            self.update_feature_explorer(self.value_of_combo)
+            self.lb_feature_data_source.set([]) # wipe the feature data source
+            self.current_dataset = event.widget.get()
+            self.dialog_text.set("You have chosen - " + self.current_dataset.capitalize())
+            self.update_feature_explorer(self.current_dataset)
 
         def update_feature_explorer(self, dataset_name):
             item_list = list(self.datasets[dataset_name].features.keys())
@@ -194,8 +238,7 @@ class MicksGis:
             self.update_feature_data_explorer(self.value_of_combo)
 
         def update_feature_data_explorer(self, feature_name):
-            current_dataset = self.cb_datasets.get()
-            properties = self.datasets[current_dataset].features[feature_name][1]
+            properties = self.datasets[self.current_dataset].features[feature_name][1]
             op_list = ["{} : {}".format(k,v) for k, v in properties.items()]
             self.lb_feature_data_source.set(op_list)
             self.lb_feature_data.configure(state = 'normal')
