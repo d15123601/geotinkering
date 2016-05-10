@@ -35,6 +35,7 @@ class MyShape():
     def __init__(self, geojson_obj, feature_id):
         from shapely import geometry
         self.crs = geojson_obj['crs']
+        self.type = geojson_obj['type']
         self.bbox = geojson_obj['bbox']
         self.features = [(f['properties'][feature_id],
                           geometry.asShape(f['geometry']),
