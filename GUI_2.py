@@ -79,6 +79,7 @@ class MicksGis:
             # Declaring variables
             self.cb_datasets_source = []
             self.cb_datasets_source = [d for d in self.datasets]
+            self.cb_op_data_source = []
             self.lb_features_source = StringVar()
             self.lb_feature_data_source = StringVar()
             self.dialog_text = StringVar()
@@ -104,17 +105,22 @@ class MicksGis:
                                                        width = 40)
             self.frm_functions = ttk.LabelFrame(self.frm_mainframe,
                                                 text = 'Functions')
-            self.frm_display = ttk.LabelFrame(self.frm_mainframe,
-                                              text = 'Features Displayed Here',
-                                              borderwidth = 5,
-                                              relief = 'groove')
 
             #Set up widgets
                 # Data selection and viewing
+            self.lbl_ip_data = ttk.Label(self.frm_data_pane_top,
+                                         text = 'Input Data:')
             self.cb_datasets = ttk.Combobox(self.frm_data_pane_top,
                                             height = 5,
                                             values = self.cb_datasets_source,
                                             width = 40)
+            self.lbl_op_data = ttk.Label(self.frm_data_pane_top,
+                                         text = 'Output Data:')
+            self.cb_op_data = ttk.Combobox(self.frm_data_pane_top,
+                                           height = 5,
+                                           values = self.cb_op_data_source,
+                                           width = 40,
+                                           state = 'disabled')
             self.lb_features = Listbox(self.frm_data_pane_middle,
                                        height = 10,
                                        listvariable = self.lb_features_source,
@@ -175,33 +181,37 @@ class MicksGis:
 
             self.frm_mainframe.grid(row = 1, column = 0)
             self.frm_data_pane_top.grid(row = 0, column = 0, sticky = 'w')
-            self.cb_datasets.grid(row = 0, column = 0, sticky = 'ew')
+            self.lbl_ip_data.grid(row = 0, column = 0, sticky = 'new')
+            self.cb_datasets.grid(row = 0, column = 1, sticky = 'ew')
+            self.lbl_op_data.grid(row = 0, column = 2, sticky = 'nw')
+            self.cb_op_data.grid(row = 0, column = 3, sticky = 'new')
 
-            self.frm_data_pane_middle.grid(row = 1, column = 0, sticky = 'w')
+            self.frm_data_pane_middle.grid(row = 1, column = 0, sticky = 'ew')
             self.lb_features.grid(row = 0, column = 0, sticky = 'ew')
             self.btn_feature_display.grid(row = 1, column = 0, sticky = 'ew')
             self.btn_confirm.grid(row = 2, column = 0, sticky = 'ew')
 
-            self.frm_data_pane_bottom.grid(row = 2, column = 0, sticky = 'w')
+            self.frm_data_pane_bottom.grid(row = 2, column = 0, sticky = 'ew')
             self.lb_feature_data.grid(row = 0, column = 0, sticky = 'ew')
 
             self.frm_functions.grid(row = 3, column = 0,
-                                    columnspan = 5)
+                                    columnspan = 1)
             self.btn_merge_polygons.grid(row = 0, column = 0)
             self.btn_points_within_poly.grid(row = 0, column = 1)
             self.btn_centroid.grid(row = 0, column = 2)
             self.btn_make_shp.grid(row = 0, column = 3)
             self.geocode.grid(row = 0, column = 4)
-            self.frm_display.grid(row = 0, column = 2,
-                                  rowspan = 2,
-                                  columnspan = 2)
 
             # event handling
             _ = self.cb_datasets.bind("<<ComboboxSelected>>", self.dataset_cb_newselection)
             _ = self.lb_features.bind("<<ListboxSelect>>", self.feature_lb_newselection)
+            _ = self.frm_functions.bind("<<Button1>>", self.check_op_stack)
 
 
             # functions
+        def check_op_stack(self):
+            if self.op_stack:
+                self.cb_op_data.configure(state = 'normal')
 
         def display(self, feature_name = None, *args):
             # allows function to be used by multiple processes, first option (when a feature_name is passed)
@@ -303,18 +313,33 @@ class MicksGis:
             else: # this is the return from the confirm button
                 merged_geom = cascaded_union(data)
                 name = 'merged' + str(self.op_counter)
-                self.op_stack[name] = merged_geom
                 self.display(None, merged_geom, name)
                 self.make_merged_shp(merged_geom, name = args[0]) # this makes a shapefile
                 self.btn_confirm.configure(state = 'disabled')
                 self.lb_features.configure(selectmode = 'single')
                 self.btn_feature_display.configure(state = 'normal')
                 self.btn_confirm.configure(state = 'disabled')
+                self.points_within_poly(merged_geom)
+                self.centroid(merged_geom)
 
-        def points_within_poly(self):
-            pass
 
-        def centroid(self):
+        def points_within_poly(self, poly):
+            if 'dit:geonames_pop_5000' in self.datasets.keys():
+                self.current_dataset = 'dit:geonames_pop_5000'
+            elif 'dit:geonames_populated' in self.datasets.keys():
+                self.current_dataset = 'towns'
+            else:
+                self.dialog_text.set('Please return to last GUI and pick a point dataset:')
+                pass
+            points = self.datasets[self.current_dataset].features
+            print(len(points))
+            contained_points = {}
+            for k,v in points.items():
+                if poly.contains(v[0]):
+                    contained_points[k] = v
+            # it works!!!
+
+        def centroid(self, geom):
             pass
 
         def make_shp(self):

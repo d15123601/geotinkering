@@ -18,160 +18,154 @@
     Linestring representing the distance between the centroids
 
 """
-
-
-import cartopy
-import matplotlib.pyplot as plt
-from geo_utils import get_data_from_geoserver, geocode_item
-from geo_utils import shape_maker2
-from fiona import collection
-from fiona.crs import from_epsg
-import fiona
-from shapely import geometry
-import pyproj
-import geopy
-from shapely.geometry import asShape
+from tkinter import *
+from tkinter import ttk
+from collections import defaultdict
+from tkinter import messagebox
 from shapely.ops import cascaded_union
-import collections
-import os
-import json
+import shapely.geometry as geometry
 from descartes import PolygonPatch
+import matplotlib.pyplot as plt
+import fiona
+from fiona.crs import from_epsg
+import json
+import os
+
+def main():
+    cty_params = {'host': "mf2.dit.ie:8080",
+                  'layer': "cso:ctygeom",
+                  'srs_code': 29902,
+                  'properties': "",
+                  'geom_field': "",
+                  'filter_property': "",
+                  'filter_values': ""}
+    town_params = {'host': "mf2.dit.ie:8080",
+                  'layer': "'dit:geonames_populated'",
+                  'srs_code': 29902,
+                  'properties': "",
+                  'geom_field': "",
+                  'filter_property': "",
+                  'filter_values': ""}
+    cty_polys = get_geojson(cty_params)
+    town_pts = get_geojson(town_params)
 
 
-class gisGUI:
-    def __init__(self, master, input_datasets):
-        # variables
-        self.dataset_ref = ""
-        self.ops_output = {}
-
-        self.dialog_text = StringVar()
-        self.dialog_text.set("Messages will display here")
-
-        self.dataset_list = [keys for keys in input_datasets.keys()]
-        self.dataset = input_datasets
-        self.cb_list = ['No gj_stack loaded']
-
-        self.ops_subject = StringVar()
-        self.ops_subject.set('')
-
-        # GUI creation
-        self.master = master
-
-        # Initialise all the widgets.
-        self.main_frame = ttk.Frame(self.master)
-
-        self.dialog = ttk.Label(self.main_frame, textvariable = self.dialog_text,
-                                foreground = 'cyan',
-                                background = 'blue', anchor = 'center')
-        self.selection_box = ttk.Labelframe(self.main_frame, text = 'Object Picker',
-                                width = 250, height = 500, borderwidth = 5,
-                                relief = 'sunken')
-        self.dataset_box = ttk.Labelframe(self.selection_box, text = 'Dataset Picker',
-                                width = 250, height = 100, borderwidth = 5,
-                                relief = 'sunken')
-        ttk.Label(self.dataset_box, text = 'Please choose a dataset from the list:',
-                  foreground = 'red', justify = 'left').grid(row = 0, column = 0)
-        self.datacb = ttk.Combobox(self.dataset_box, values= self.dataset_list, state='readonly')
-
-        self.datacb.current(1)
-        # set the selection event
-        self.cb_box = ttk.Labelframe(self.selection_box, text = 'Item Picker',
-                                width = 250, height = 400, borderwidth = 5,
-                                relief = 'sunken')
-        ttk.Label(self.cb_box, text = 'Please choose an item from the list:',
-                  foreground = 'red', justify = 'left').grid(row = 0, column = 0)
-        self.itemcb = ttk.Combobox(self.cb_box, values= self.cb_list, state='disabled')
-        self.itemcb.current(0)
-        # set the selection event
-        self.op_box = ttk.Labelframe(self.main_frame, text = 'Operations',
-                                    width = 250, height = 500,
-                                    borderwidth = 5,
-                                    relief = 'sunken')
-        self.btn_add = ttk.Button(self.op_box, width = 50, text = 'Add', command = self.choose_selected)
-        self.btn_merge = ttk.Button(self.op_box, width = 50, text = 'Merge',
-                                    command = self.merge_chosen, state = 'disabled')
-        self.btn_geocode = ttk.Button(self.op_box, width = 50, text = 'Geocode',
-                                    command = self.geocode_chosen, state = 'disabled')
-        self.btn_centroid = ttk.Button(self.op_box, width = 50, text = 'Centroid',
-                                    command = self.centroid_chosen, state = 'disabled')
-        self.btn_convexhull = ttk.Button(self.op_box, width = 50, text = 'Make Convex Hull',
-                                    command = self.convex_hull, state = 'disabled')
-        self.btn_line_join = ttk.Button(self.op_box, width = 50, text = 'Join with line',
-                                    command = self.line_join, state = 'disabled')
-        self.ops_frame = ttk.Labelframe(self.op_box, text = 'Items selected:',
-                                        relief = 'sunken')
-        self.subject_list = ttk.Label(self.ops_frame, textvariable = self.ops_subject,
-                                      anchor = 'w')
-        self.display_box = ttk.Labelframe(self.main_frame, text = 'Object Display',
-                                width = 500, height = 500, borderwidth = 5,
-                                relief = 'sunken')
 
 
-        #Lay out all the widgets
-        self.main_frame.grid(column = 0, row = 0, sticky = (N, S, E, W))
-        self.dialog.grid(row = 0, column = 0, columnspan = 3)
-        self.selection_box.grid(row = 1, column = 0, sticky = 'ns')
-        self.dataset_box.grid(row = 0, column = 0, sticky = 'ns')
-        self.datacb.grid(row = 1, column = 0, sticky = 'nsew')
-        self.cb_box.grid(sticky = 'nsew')
-        self.itemcb.grid(row = 1, column = 0, sticky = 'nsew')
-        self.op_box.grid(row = 1, column = 1, sticky = 'ns')
-        self.btn_add.grid(row = 0, column = 0)
-        self.btn_merge.grid(row = 1, column = 0)
-        self.btn_geocode.grid(row = 2, column = 0)
-        self.btn_centroid.grid(row = 3, column = 0)
-        self.btn_convexhull.grid(row = 4, column = 0)
-        self.btn_line_join.grid(row = 5, column = 0)
-        self.ops_frame.grid(sticky = 'nsew')
-        self.subject_list.grid(sticky = 'nsew')
-        self.display_box.grid(row = 1, column = 2, sticky = 'ns')
 
-        # Event handling
-        self.datacb_value = self.datacb.bind("<<ComboboxSelected>>", self.dataset_cb_newselection)
-        self.itemcb_value = self.itemcb.bind("<<ComboboxSelected>>", self.itemcb_newselection)
+ def get_geojson(self, params):
+        """
+        This function accepts a dictionary of parameters and returns a GeoJSON representation of the requested layer. This
+        takes a format similar to the following example:
 
-    def dataset_cb_newselection(self, event):
-        print(event.widget)
-        owner = event.widget
-        self.value_of_combo = owner.get()
-        self.dialog_text.set("You have chosen - " + self.value_of_combo)
-        self.update_itemcb(self.value_of_combo)
+        {
+            "host": "mf2.dit.ie:8080",
+            "layer": "cso:ctygeom",
+            "srs_code": 29902,
+            "properties": ["countyname", ],
+            "geom_field": "geom",
+            "filter_property": "countyname",
+            "filter_values": ["Cork", "Kerry"]
+        }
 
-    def itemcb_newselection(self, event):
-        print(event.widget)
-        owner = event.widget
-        self.geo_item = owner.get()
+        You can filter the set of features returned by adjusting "filter_values". This is a list of values that must
+        be present in "filter_property". In the above example you'd get the counties of Cork and Kerry plus Cork City.
+        Similarly, you can filter the properties returned to reduce their number. If you use this feature, you'll need to
+        set "geom_field" to the name of the geometry field. Geoserver can give you this.
 
-    def update_itemcb(self, dataset_name):
-        item_list = [i[0] for i in self.dataset[dataset_name]]
-        self.cb_list = 'Please select from below'
-        self.itemcb['values'] = item_list
-        self.itemcb.state(['!disabled', 'readonly'])
+        All values in the dictionary are optional except "host" and "layer".
 
-    def add_cb_value(self):
-        self.cty = str(self.dataset_cb_newselection)
-        self.cty_stack.append(self.cty)
+        :param Dictionary as above:
+        :return: Parsed GeoJSON or exception as appropriate
+        """
 
-    def choose_selected(self):
-        pass
+        import urllib.parse
+        import httplib2
+        import os, os.path
+        import json
+        import xml.etree.ElementTree as etree
 
-    def merge_chosen(self):
-        #TODO ensure >1 argument to this function
-        pass
+        #
+        # Check that the parameters exist and/or sensible. Because the filter can contain some 'odd' characters such as '%'
+        # and single quotes the filter text needs to be url encoded so that text like "countyname LIKE '%Cork%'" becomes
+        # "countyname%20LIKE%20%27%25Cork%25%27" which is safer for URLs
+        #
+        if "host" not in params:
+            raise ValueError("Value for 'host' required")
+        if "layer" not in params:
+            raise ValueError("Value for 'layer' required")
+        if "srs_code" in params and params["srs_code"]:
+            srs_text = "&srsName=epsg:{}".format(params["srs_code"])
+        else:
+            srs_text = ""
+        if "properties" in params and params["properties"]:
+            item_string = ""
+            for item in params["properties"]:
+                item_string += str(item) + ","
+            if "geom_field" in params and params["geom_field"]:
+                item_string += str(params["geom_field"])
+            property_text = "&PROPERTYNAME={}".format(item_string)
+        else:
+            property_text = ""
+        if "filter_property" in params and params["filter_property"] and params["filter_values"]:
+            filter_text = "{filter_property} LIKE '%{filter_values}%'".format(filter_property=params["filter_property"], filter_values=params["filter_values"][0])
+            for item in range(1, len(params["filter_values"])):
+                filter_text += "OR {filter_property} LIKE '%{filter_values}%'".format(filter_property=params["filter_property"], filter_values=params["filter_values"][item])
+            filter_text = urllib.parse.quote(filter_text)
+            filter_text = "&CQL_FILTER=" + filter_text
+        else:
+            filter_text = ""
 
+        url = "http://{host}/geoserver/ows?" \
+              "service=WFS&version=1.0.0&" \
+              "request=GetFeature&" \
+              "typeName={layer}&" \
+              "outputFormat=json".format(host=params["host"], layer=params["layer"])
+        url += srs_text
+        url += property_text
+        url += filter_text
 
-    def geocode_chosen(self):
-        #TODO ensure only 1 argument to this function
-        pass
+        #
+        # Make a directory to hold downloads so that we don't have to repeatedly download them later, i.e. they already
+        # exist so we get them from a local directory. This directory is called .httpcache".
+        #
+        scriptDir = 'C:\\Python34'
+        cacheDir = os.path.join(scriptDir, ".httpcache")
+        if not os.path.exists(cacheDir):
+            os.mkdir(cacheDir)
 
-    def centroid_chosen(self):
-        pass
+        #
+        # Go to the web and attempt to get the resource
+        #
+        try:
+            h = httplib2.Http(cacheDir)
+            response_headers, response = h.request(url)
+            response = response.decode()
 
+            #
+            # Geoserver only sends valid gj_stack in the requested format, in our case GeoJSON, so if we get a response back in
+            # XML format we know that we have an error. We do minimal parsing on the xml to extract the error text and raise
+            # an exception based on it.
+            #
+            if response[:5] == "<?xml":
+                response = etree.fromstring(response)
+                xml_error = ""
+                for element in response:
+                    xml_error += element.text
+                raise Exception(xml_error)
+            else:
+                return json.loads(response)
 
-    def convex_hull(self):
-        pass
+        except httplib2.HttpLib2Error as e:
+            print(e)
 
-
-    def line_join(self):
-        pass
-
+class MyShape:
+    #todo add methods to reproject, perform geometric functions etc.
+    def __init__(self, geojson_obj, feature_id):
+        from shapely import geometry
+        self.crs = geojson_obj['crs']
+        self.type = geojson_obj['type']
+        self.bbox = geojson_obj['bbox']
+        # create a dict of {name: (geom, properties)} for each feature in the dataset
+        self.features = {f['properties'][feature_id]:(geometry.asShape(f['geometry']),f['properties'])
+                          for f in geojson_obj['features']}
