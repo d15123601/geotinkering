@@ -11,8 +11,9 @@ import shapely
 import shapely.geometry as geometry
 from shapely.ops import cascaded_union
 import matplotlib.pyplot as plt
-
-
+import fiona
+from fiona.crs import from_epsg
+import os
 
 """
 thanks to this url for plotting ->  https://gist.github.com/urschrei/6436526
@@ -26,12 +27,9 @@ def main():
     with open("geonames_pop.txt",'r') as f2:
         pop_str = f2.read()
 
-    with open("provinces.txt",'r') as f2:
-        prov_str = f2.read()
 
     cty_polygons = json.loads(cty_str)
     places_pts = json.loads(pop_str)
-    prov_polygons = json.loads(prov_str)
     stack = []
     stack.append([cty_polygons, 'countyname', 'counties'])
     stack.append([places_pts, 'asciiname', 'towns'])
@@ -40,12 +38,8 @@ def main():
     if stack:
         for obj in stack:
             gis_data[obj[2]] = MyShape(obj[0], obj[1])
-    provs = []
-    for f in prov_polygons['features']:
-        provs.append(geometry.asShape(f['geometry']))
-    ireland = cascaded_union(provs)
     root = Tk()
-    MicksGis(root, gis_data, ireland)
+    MicksGis(root, gis_data)
     root.mainloop()
 
 
@@ -54,11 +48,19 @@ class MicksGis:
         This class will construct the gis gui.
         We pass in the collection of MyShape objects.
         """
-        def __init__(self, master, datasets, ireland):
+        def __init__(self, master, datasets):
+            with open("provinces.txt",'r') as f2:
+                prov_str = f2.read()
+            prov_polygons = json.loads(prov_str)
+            provs = []
+            for f in prov_polygons['features']:
+                provs.append(geometry.asShape(f['geometry']))
+            self.bg = cascaded_union(provs)
             self.master = master
             self.datasets = datasets
-            self.bg = ireland
             self.current_dataset = ""
+            self.op_counter = 0
+            self.op_stack = {}
             self.operation = 'N' # this holds a value to tell which operation is currently in progress
                                 # M = Merge, I = Intermediate, G = Geocode, N = None
             self.master.title("SIMPLE GIS")
@@ -126,6 +128,7 @@ class MicksGis:
             self.btn_confirm = ttk.Button(self.frm_data_pane_middle,
                                           text = 'CONFIRM SELECTED',
                                           style = 'Wait.TButton',
+                                          state = 'disabled',
                                           command = lambda: self.confirm(self.lb_features.curselection()))
             self.btn_merge_polygons = ttk.Button(self.frm_functions,
                                                  width = 20,
@@ -224,9 +227,8 @@ class MicksGis:
                 plt.show()
             else:
                 geom = args[0]
-                items = args[1]
+                name = args[1]
                 geom = cascaded_union(geom) #to dissolve multipolygons
-                geom_bdry = geom.boundary
                 minx, miny, maxx, maxy = self.bg.bounds
                 w, h = maxx - minx, maxy - miny
                 fig = plt.figure(1, figsize = (5, 5), dpi = 180, frameon = False)
@@ -243,7 +245,7 @@ class MicksGis:
                 else:
                     patch = PolygonPatch(geom, fc='teal', ec='navy', alpha = 0.5)
                     ax.add_patch(patch)
-                plt.title(" ".join(items))
+                plt.title(name)
                 plt.show()
 
         def dataset_cb_newselection(self, event):
@@ -289,13 +291,19 @@ class MicksGis:
                 self.btn_feature_display.configure(state = 'disabled')
                 self.lb_features.configure(selectmode = 'multiple')
                 self.operation = 'M'
+                self.btn_confirm.configure(state = 'normal')
                 self.dialog_text.set('Please confirm when you have selected your items')
                 pass
             else: # this is the return from the confirm button
                 merged_geom = cascaded_union(data)
-                self.display(None, merged_geom, args[0])
-                self.make_shp(data, args[0])
-
+                name = 'merged' + str(self.op_counter)
+                self.op_stack[name] = merged_geom
+                self.display(None, merged_geom, name)
+                self.make_merged_shp(merged_geom, name = args[0]) # this makes a shapefile
+                self.btn_confirm.configure(state = 'disabled')
+                self.lb_features.configure(selectmode = 'single')
+                self.btn_feature_display.configure(state = 'normal')
+                self.btn_confirm.configure(state = 'disabled')
 
         def points_within_poly(self):
             pass
@@ -303,8 +311,32 @@ class MicksGis:
         def centroid(self):
             pass
 
-        def make_shp(self, data, *args):
-            import fiona
+        def make_shp(self):
+            pass
+
+
+        def make_merged_shp(self, data, name, crs = None):
+            self.op_counter += 1
+            geom_type = data.geom_type
+            a_schema = {'geometry': geom_type,
+                        'properties': {'name':'str'}
+                       }
+            filename = 'merged' + str(self.op_counter) + ".shp"
+            path = os.path.join('op_data',filename)
+            obj_name = 'merged' + str(self.op_counter)
+            if not crs:
+                my_crs = self.datasets[self.current_dataset].crs
+                crs = from_epsg(my_crs['properties']['code'])
+            with fiona.open(path,
+                            'w',
+                            driver= 'ESRI Shapefile',
+                            crs= crs,
+                            schema= a_schema) as c:
+                c.write({
+                    'properties':{'name':obj_name},
+                      'geometry':geometry.mapping(data)})
+
+
 
         def geocode(self):
             pass

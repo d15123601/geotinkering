@@ -26,8 +26,10 @@ from shapely.ops import cascaded_union
 import shapely.geometry as geometry
 from descartes import PolygonPatch
 import matplotlib.pyplot as plt
+import fiona
+from fiona.crs import from_epsg
 import json
-
+import os
 
 def main():
     root = Tk()
@@ -53,8 +55,6 @@ class MicksGis:
         We pass in the collection of MyShape objects.
         """
         def __init__(self, master, datasets):
-
-            # setup the background data for the display of data
             with open("provinces.txt",'r') as f2:
                 prov_str = f2.read()
             prov_polygons = json.loads(prov_str)
@@ -62,11 +62,13 @@ class MicksGis:
             for f in prov_polygons['features']:
                 provs.append(geometry.asShape(f['geometry']))
             self.bg = cascaded_union(provs)
-
-
             self.master = master
             self.datasets = datasets
             self.current_dataset = ""
+            self.op_counter = 0
+            self.op_stack = {}
+            self.operation = 'N' # this holds a value to tell which operation is currently in progress
+                                # M = Merge, I = Intermediate, G = Geocode, N = None
             self.master.title("SIMPLE GIS")
 
             # Set Button style
@@ -124,10 +126,16 @@ class MicksGis:
                                            width = 40)
                 # Functions
             self.btn_feature_display = ttk.Button(self.frm_data_pane_middle,
-                                          text = 'DISPLAY SELECTED',
+                                                  text = 'DISPLAY SELECTED',
+                                                  style = 'Wait.TButton',
+                                                  command = lambda: self.display(feature_name =
+                                                                    self.lb_features.get(
+                                                                    self.lb_features.curselection())))
+            self.btn_confirm = ttk.Button(self.frm_data_pane_middle,
+                                          text = 'CONFIRM SELECTED',
                                           style = 'Wait.TButton',
-                                          command = lambda: self.display(self.lb_features.get(
-                                                                         self.lb_features.curselection())))
+                                          state = 'disabled',
+                                          command = lambda: self.confirm(self.lb_features.curselection()))
             self.btn_merge_polygons = ttk.Button(self.frm_functions,
                                                  width = 20,
                                                  cursor = 'hand1',
@@ -172,6 +180,7 @@ class MicksGis:
             self.frm_data_pane_middle.grid(row = 1, column = 0, sticky = 'w')
             self.lb_features.grid(row = 0, column = 0, sticky = 'ew')
             self.btn_feature_display.grid(row = 1, column = 0, sticky = 'ew')
+            self.btn_confirm.grid(row = 2, column = 0, sticky = 'ew')
 
             self.frm_data_pane_bottom.grid(row = 2, column = 0, sticky = 'w')
             self.lb_feature_data.grid(row = 0, column = 0, sticky = 'ew')
@@ -194,31 +203,56 @@ class MicksGis:
 
             # functions
 
-        def display(self, feature_name):
-            geom = self.datasets[self.current_dataset].features[feature_name][0]
-            if geom.geom_type != ('Polygon' or 'MultiPolygon'):
-                self.dialog_text.set('This geometry is invalid. Please use a different dataset')
-                pass
-            geom = cascaded_union(geom) #to dissolve multipolygons
-            geom_bdry = geom.boundary
-            minx, miny, maxx, maxy = self.bg.bounds
-            w, h = maxx - minx, maxy - miny
-            fig = plt.figure(1, figsize = (5, 5), dpi = 180, frameon = False)
-            ax = fig.add_subplot(111)
-            ax.set_xlim(minx,maxx)
-            ax.set_ylim(miny,maxy)
-            for poly in self.bg:
-                bg_patch = PolygonPatch(poly, fc = 'lightsage', ec = 'k', alpha = 1)
-                ax.add_patch(bg_patch)
+        def display(self, feature_name = None, *args):
+            # allows function to be used by multiple processes, first option (when a feature_name is passed)
+            # is for viewing data, second option is for viewing created geometries
+            if feature_name:
+                geom = self.datasets[self.current_dataset].features[feature_name][0]
+                if geom.geom_type != ('Polygon' or 'MultiPolygon'):
+                    self.dialog_text.set('This geometry is invalid. Please use a different dataset')
+                    pass
+                geom = cascaded_union(geom) #to dissolve multipolygons
+                geom_bdry = geom.boundary
+                minx, miny, maxx, maxy = self.bg.bounds
+                w, h = maxx - minx, maxy - miny
+                fig = plt.figure(1, figsize = (5, 5), dpi = 180, frameon = False)
+                ax = fig.add_subplot(111)
+                ax.set_xlim(minx,maxx)
+                ax.set_ylim(miny,maxy)
+                for poly in self.bg:
+                    bg_patch = PolygonPatch(poly, fc = 'lightsage', ec = 'k', alpha = 1)
+                    ax.add_patch(bg_patch)
 
-            if geom.geom_type == 'MultiPolygon':
-                for poly in geom:
-                    patch = PolygonPatch(poly, fc= 'teal', ec='navy', alpha = 0.5)
+                if geom.geom_type == 'MultiPolygon':
+                    for poly in geom:
+                        patch = PolygonPatch(poly, fc= 'teal', ec='navy', alpha = 0.5)
+                        ax.add_patch(patch)
+                else:
+                    patch = PolygonPatch(geom, fc='teal', ec='navy', alpha = 0.5)
                     ax.add_patch(patch)
+                plt.show()
             else:
-                patch = PolygonPatch(geom, fc='teal', ec='navy', alpha = 0.5)
-                ax.add_patch(patch)
-            plt.show()
+                geom = args[0]
+                name = args[1]
+                geom = cascaded_union(geom) #to dissolve multipolygons
+                minx, miny, maxx, maxy = self.bg.bounds
+                w, h = maxx - minx, maxy - miny
+                fig = plt.figure(1, figsize = (5, 5), dpi = 180, frameon = False)
+                ax = fig.add_subplot(111)
+                ax.set_xlim(minx,maxx)
+                ax.set_ylim(miny,maxy)
+                for poly in self.bg:
+                    bg_patch = PolygonPatch(poly, fc = 'lightsage', ec = 'k', alpha = 1)
+                    ax.add_patch(bg_patch)
+                if geom.geom_type == 'MultiPolygon':
+                    for poly in geom:
+                        patch = PolygonPatch(poly, fc= 'teal', ec='navy', alpha = 0.5)
+                        ax.add_patch(patch)
+                else:
+                    patch = PolygonPatch(geom, fc='teal', ec='navy', alpha = 0.5)
+                    ax.add_patch(patch)
+                plt.title(name)
+                plt.show()
 
         def dataset_cb_newselection(self, event):
             self.lb_feature_data_source.set([]) # wipe the feature data source
@@ -233,9 +267,12 @@ class MicksGis:
 
         def feature_lb_newselection(self, event):
             owner = event.widget
-            self.value_of_combo = owner.get(owner.curselection())
-            self.dialog_text.set("You have chosen - " + self.value_of_combo.capitalize())
-            self.update_feature_data_explorer(self.value_of_combo)
+            if self.operation != 'N':
+                pass
+            else:
+                self.value_of_combo = owner.get(owner.curselection())
+                self.dialog_text.set("You have chosen - " + self.value_of_combo.capitalize())
+                self.update_feature_data_explorer(self.value_of_combo)
 
         def update_feature_data_explorer(self, feature_name):
             properties = self.datasets[self.current_dataset].features[feature_name][1]
@@ -243,14 +280,70 @@ class MicksGis:
             self.lb_feature_data_source.set(op_list)
             self.lb_feature_data.configure(state = 'normal')
 
-        def merge_polys(self):
-            pass
+        def confirm(self, data_lines): # this acts as a confirm for selection of data, and returns to
+                                 # origin function with the data selected
+            if self.operation == 'M':
+                items = [self.lb_features.get(i) for i in data_lines]
+                data = [self.datasets[self.current_dataset].features[feature_name][0]
+                        for feature_name in items]
+                self.merge_polys(data, items)
+            #elif
+
+        def merge_polys(self, data = None, *args):
+            # allows the feature listbox to become enabled for multiple selections
+            # and waits for items to be selected and confirmed
+            if data == None:
+                self.lb_feature_data_source.set([])
+                self.btn_feature_display.configure(state = 'disabled')
+                self.lb_features.configure(selectmode = 'multiple')
+                self.operation = 'M'
+                self.btn_confirm.configure(state = 'normal')
+                self.dialog_text.set('Please confirm when you have selected your items')
+                pass
+            else: # this is the return from the confirm button
+                merged_geom = cascaded_union(data)
+                name = 'merged' + str(self.op_counter)
+                self.op_stack[name] = merged_geom
+                self.display(None, merged_geom, name)
+                self.make_merged_shp(merged_geom, name = args[0]) # this makes a shapefile
+                self.btn_confirm.configure(state = 'disabled')
+                self.lb_features.configure(selectmode = 'single')
+                self.btn_feature_display.configure(state = 'normal')
+                self.btn_confirm.configure(state = 'disabled')
+
         def points_within_poly(self):
             pass
+
         def centroid(self):
             pass
+
         def make_shp(self):
             pass
+
+
+        def make_merged_shp(self, data, name, crs = None):
+            self.op_counter += 1
+            geom_type = data.geom_type
+            a_schema = {'geometry': geom_type,
+                        'properties': {'name':'str'}
+                       }
+            filename = 'merged' + str(self.op_counter) + ".shp"
+            path = os.path.join('op_data',filename)
+            obj_name = 'merged' + str(self.op_counter)
+            if not crs:
+                my_crs = self.datasets[self.current_dataset].crs
+                crs = from_epsg(my_crs['properties']['code'])
+            with fiona.open(path,
+                            'w',
+                            driver= 'ESRI Shapefile',
+                            crs= crs,
+                            schema= a_schema) as c:
+                c.write({
+                    'properties':{'name':obj_name},
+                      'geometry':geometry.mapping(data)})
+
+
+
         def geocode(self):
             pass
 
