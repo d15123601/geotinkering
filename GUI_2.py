@@ -32,6 +32,10 @@ import json
 import os
 
 def main():
+    scriptDir = os.path.dirname(__file__)
+    op_data = os.path.normpath(os.path.join(scriptDir, "op_data"))
+    if not os.path.exists(op_data):
+        os.mkdir(op_data)
     root = Tk()
     LoadingGUI(root)
     root.mainloop()

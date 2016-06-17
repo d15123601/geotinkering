@@ -67,7 +67,6 @@ def main():
 
     merge_list = ['South Tipperary','North Tipperary','Waterford County','Cork County']
     merge_targets = {k:v[0] for k,v in ctys.features.items() if k in merge_list}
-
     merged_geom_name = "-".join(list(merge_targets.keys()))
     merged_geom = cascaded_union(list(merge_targets.values()))
     # Use our function to create a shapefile with this merged geometry
