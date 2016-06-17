@@ -3,6 +3,7 @@ from tkinter import ttk
 from collections import defaultdict
 from tkinter import messagebox
 
+
 class loadingGUI():
     def __init__(self, master):
         self.master = master
@@ -17,12 +18,12 @@ class loadingGUI():
 
         # Initialise variables here
         self.base_params = {'host': "mf2.dit.ie:8080",
-                       'layer': "cso:ctygeom",
-                       'srs_code': 29902,
-                       'properties': "",
-                       'geom_field': "",
-                       'filter_property': "",
-                       'filter_values': ""} # dict to store the  fetch params
+                           'layer': "cso:ctygeom",
+                           'srs_code': 29902,
+                           'properties': "",
+                           'geom_field': "",
+                           'filter_property': "",
+                           'filter_values': ""} # dict to store the  fetch params
 
         self.param1 = StringVar()
         self.param2 = StringVar()
@@ -33,19 +34,24 @@ class loadingGUI():
         self.param7 = StringVar()
         self.gis_stack_text = StringVar()
         self.info_text = StringVar()
+        self.selected_item = StringVar()
+        self.meta_list = StringVar()
+        self.data_headings_list = StringVar()
+        self.data_item = StringVar()
+        self.data_dict = {}
 
-        self.gis_stack = [] # stack to store items to send to GIS
+        self.gis_stack = [] # out_stack to store items to send to GIS
 
         self.params_list = [self.param1,
-                       self.param2,
-                       self.param3,
-                       self.param4,
-                       self.param5,
-                       self.param6,
-                       self.param7] # list to allow iterative assignment and retrieval of
+                            self.param2,
+                            self.param3,
+                            self.param4,
+                            self.param5,
+                            self.param6,
+                            self.param7] # list to allow iterative assignment and retrieval of
                                     # params
 
-        self.gj_stack =  defaultdict(list) #stack to store geojson objects retrieved
+        self.gj_stack =  defaultdict(list) #out_stack to store geojson objects retrieved
 
         # Initialise the widgets
         self.mainframe = ttk.Frame(self.master)
@@ -59,7 +65,7 @@ class loadingGUI():
                                 anchor = 'center')
         self.label2 = ttk.Label(self.mainframe,
                                 text = "Please use buttons to select datasets or enter custom\n"
-                                + "parameters in the boxes to the left",
+                                + "parameters using the boxes on the left",
                                 foreground = 'blue',
                                 relief = 'sunken',
                                 anchor = 'center')
@@ -74,7 +80,7 @@ class loadingGUI():
                                                   'by clicking the button',
                                           relief = 'sunken')
         self.geojson_nav_frame = ttk.LabelFrame(self.mainframe,
-                                                text = 'Please explore the data here',
+                                                text = 'Please explore the gj_stack here',
                                                 relief = 'sunken')
 
         self.entry1 = ttk.Entry(self.entry_frame,
@@ -114,8 +120,8 @@ class loadingGUI():
                                 text = 'filter criteria:')
 
         self.button_load_params = ttk.Button(self.entry_frame,
-                                          text = "^ Load ^",
-                                          command = self.load_params)
+                                             text = "^ Load ^",
+                                             command = self.load_params)
 
         self.display1 = ttk.Label(self.display_frame,
                                   foreground = 'red',
@@ -149,12 +155,12 @@ class loadingGUI():
         self.button_County = ttk.Button(self.button_frame,
                                         text = 'County Polygons',
                                         command = self.county_polygons)
-        self.button_Towns =  ttk.Button(self.button_frame,
-                                        text = 'Town Points',
-                                        command = self.town_points)
-        self.button_LargeTowns =  ttk.Button(self.button_frame,
-                                             text = 'Large Town Points',
-                                             command = self.large_town_points)
+        self.button_Towns = ttk.Button(self.button_frame,
+                                       text = 'Town Points',
+                                       command = self.town_points)
+        self.button_LargeTowns = ttk.Button(self.button_frame,
+                                            text = 'Large Town Points',
+                                            command = self.large_town_points)
         self.button_EDs = ttk.Button(self.button_frame,
                                      text = 'ED Polygons',
                                      command = self.ed_polygons)
@@ -170,38 +176,64 @@ class loadingGUI():
 
         self.geoj_cb = ttk.Combobox(self.geojson_nav_frame,
                                     state = 'disabled')
-        self.button_gis_send = ttk.Button(self.geojson_nav_frame,
-                                          text = 'Send to GIS',
+        self.button_gis_stack = ttk.Button(self.geojson_nav_frame,
+                                          text = 'Add to GIS Stack',
                                           style = 'Go.TButton',
-                                          command = self.send_to_gis)
-        self.button_stack_for_gis = ttk.Button(self.geojson_nav_frame,
-                                               text = 'Add to O/P Stack',
-                                               style = 'Wait.TButton',
-                                               command = self.add_to_stack)
-        # self.gis_stack_label = ttk.Label(self.geojson_nav_frame,
-        #                                  textvariable = self.gis_stack_text)
+                                          command = self.add_to_stack)
+        self.button_inspect_item = ttk.Button(self.geojson_nav_frame,
+                                              text = 'Inspect Item',
+                                              style = 'Wait.TButton',
+                                              command = self.inspect_item)
 
-        # Set up the treeview widget
-        self.tree_geoj= ttk.Treeview(self.geojson_nav_frame,
-                                     selectmode = 'browse')
-        self.tree_geoj["columns"] = ('R','L1', 'L2', 'L3', 'L4')
-        self.tree_geoj.column('R', width = 100)
-        self.tree_geoj.column('L1', width = 100)
-        self.tree_geoj.column('L2', width = 100)
-        self.tree_geoj.column('L3', width = 100)
-        self.tree_geoj.column('L4', width = 100)
-        self.tree_geoj.heading('R', text = 'Root Object')
-        self.tree_geoj.heading('L1', text = 'Level 1')
-        self.tree_geoj.heading('L2', text = 'Level 2')
-        self.tree_geoj.heading('L3', text = 'Level 3')
-        self.tree_geoj.heading('L4', text = 'Level 4')
-
-        self.info_label = ttk.Label(self.mainframe,
-                                    textvariable = self.info_text)
+        self.lbl_data1 = ttk.Label(self.geojson_nav_frame,
+                                  foreground = 'blue',
+                                  anchor = 'center',
+                                  text = 'Top Level Properties')
+        self.lbl_data2 = ttk.Label(self.geojson_nav_frame,
+                                  foreground = 'blue',
+                                  anchor = 'center',
+                                  text = 'Feature Properties')
+        self.frm_geoj_op = ttk.Frame(self.geojson_nav_frame)
+        self.lbl_data_example = ttk.Label(self.frm_geoj_op,
+                                          foreground = 'blue',
+                                          anchor = 'center',
+                                          text = 'Example Properties')
+        self.meta_tb = Listbox(self.geojson_nav_frame,
+                               exportselection = 0,
+                               bd = 5,
+                               width = 40,
+                               selectmode = SINGLE,
+                               listvariable = self.meta_list
+                               )
+        self.data_tb = Listbox(self.geojson_nav_frame,
+                               exportselection = 0,
+                               bd = 5,
+                               width = 20,
+                               selectmode = SINGLE,
+                               listvariable = self.data_headings_list
+                               )
+        self.lbl_gis_stack = ttk.Label(self.frm_geoj_op,
+                                       text = 'GIS Stack',
+                                       foreground = 'blue')
+        self.tb_data = ttk.Label(self.frm_geoj_op,
+                                 textvariable = self.data_item,
+                                 relief = 'sunken',
+                                 background = 'white',
+                                )
+        self.tb_geoj_stack = ttk.Label(self.frm_geoj_op,
+                                 textvariable = self.gis_stack_text,
+                                 relief = 'sunken',
+                                 background = 'white',
+                                )
+        self.info_label = Label(self.mainframe,
+                                textvariable = self.info_text,
+                                relief = 'sunken',
+                                anchor = 'center')
+        self.info_text.set('Use the dialog above to explore the datasets')
 
         self.mainframe.grid(row=0, column = 0)
         self.label1.grid(row = 0, column = 0, columnspan = 4, sticky = 'ew')
-        self.entry_frame.grid(row = 1, column = 0, sticky = 'ns')
+        self.entry_frame.grid(row = 2, column = 0, sticky = 'ns')
         self.lbl_p1.grid(row = 0, column = 0, sticky = 'ew')
         self.lbl_p2.grid(row = 1, column = 0, sticky = 'ew')
         self.lbl_p3.grid(row = 2, column = 0, sticky = 'ew')
@@ -221,7 +253,7 @@ class loadingGUI():
         self.entry7.grid(row = 6, column = 1, sticky = 'ew')
         self.button_load_params.grid(row = 7, column = 1, sticky = 'ew')
 
-        self.display_frame.grid(row = 1, column = 1, sticky = 'ns')
+        self.display_frame.grid(row = 2, column = 1, sticky = 'ns')
         self.display1.grid(row = 0, sticky = 'ew')
         self.display2.grid(row = 1, sticky = 'ew')
         self.display3.grid(row = 2, sticky = 'ew')
@@ -233,7 +265,7 @@ class loadingGUI():
         for child, i in zip(self.display_frame.winfo_children(), self.params_list):
             child.configure(text = i.get())
 
-        self.button_frame.grid(row = 1, column = 2, sticky = 'ns')
+        self.button_frame.grid(row = 2, column = 2, sticky = 'ns')
         self.button_LargeTowns.grid(row = 0, sticky = 'ew')
         self.button_County.grid(row = 1, sticky = 'ew')
         self.button_EDs.grid(row = 2, sticky = 'ew')
@@ -241,42 +273,85 @@ class loadingGUI():
         self.button_SAs.grid(row = 4, sticky = 'ew')
         self.button_Towns.grid(row = 5, sticky = 'ew')
 
-        self.geojson_nav_frame.grid(row = 2, column = 0,
+        self.geojson_nav_frame.grid(row = 3, column = 0,
                                     columnspan = 4, sticky = 'ew')
+        self.frm_geoj_op.grid(row = 2, column = 2, stick = 'n')
         self.geoj_cb.grid(row = 0, column = 0,
                           columnspan = 2, sticky = 'nw')
-        self.button_stack_for_gis.grid(row = 0, column = 2)
-        #self.gis_stack_label.grid(row = 0, column = 3)
-        self.button_gis_send.grid(row = 0, column = 4)
-        self.tree_geoj.grid(row = 1, columnspan = 4)
+        self.button_inspect_item.grid(row = 0, column = 1)
+        self.button_gis_stack.grid(row = 0, column = 2)
+        self.lbl_data1.grid(row = 1, column = 0)
+        self.lbl_data2.grid(row = 1, column = 1)
+        self.meta_tb.grid(row = 2, column = 0)
+        self.data_tb.grid(row = 2, column = 1)
+        self.lbl_data_example.grid(row = 0, column = 0, sticky = 'new')
+        self.tb_data.grid(row = 1, column = 0, sticky = 'new')
+        self.lbl_gis_stack.grid(row = 2, column = 0, sticky ='new')
+        self.tb_geoj_stack.grid(row = 3, column = 0, sticky = 'nsew')
 
-        self.label2.grid(row = 3, column = 0, columnspan = 4, sticky = 'ew')
-        self.info_label.grid(row = 4, column = 0)
+
+        self.label2.grid(row = 1, column = 0, columnspan = 4, sticky = 'ew')
+        self.info_label.grid(row = 4, column = 0, columnspan = 4, sticky = 'ew')
+
+
 
         #Event handling
-        self.geoj_cb_value = self.geoj_cb.bind("<<ComboboxSelected>>", self.newselection)
+        self.geoj_cb_value = self.geoj_cb.bind("<<ComboboxSelected>>", self.geoj_cb_selection)
+        self.data_tb_value = self.data_tb.bind("<<ListboxSelect>>", self.item_selection)
 
-    def newselection(self, event):
-        # owner = event.widget
-        # new_item = owner.get() + '\n'
-        # stack_contents = self.gis_stack_text.get()
-        # if new_item in stack_contents:
-        #     self.info_text.set('You already have this item in the stack;\n' +
-        #                        'Please choose anoher or proceed to GIS')
-        #     pass
-        # else:
-        #     self.gis_stack.append(new_item)
-        #     self.gis_stack_text.set(stack_contents + new_item)
-        # TODO add treeview update to this method
-        pass
+    def geoj_cb_selection(self, event):
+        #TODO function which blanks the display boxes when this changes
+        owner = event.widget
+        self.selected_item.set(owner.get())
+
+    def item_selection(self, event):
+        owner = event.widget
+        line = owner.get(owner.curselection())
+        item_str = str(self.data_dict[line])
+        if len(item_str) > 30:
+            item_str = "{}{}".format(item_str[:25],'....')
+        self.data_item.set(item_str)
+
 
     def add_to_stack(self):
-        # TODO add function to add selected cb item to stack, and display in tree
-        pass
+        new_item = self.selected_item.get()
+        stack_contents = self.gis_stack_text.get()
+        if new_item in stack_contents:
+            self.info_text.set('You already have this item in the out_stack;\n' +
+                               'Please choose anoher or proceed to GIS')
+            pass
+        else:
+            self.gis_stack.append(self.gj_stack[new_item])
+            self.gis_stack_text.set(stack_contents + new_item + '\n')
+
+    def inspect_item(self):
+        if self.selected_item.get() != "":
+            item = self.gj_stack[self.selected_item.get()]
+            meta, data_hdgs, data_dict = self.geoj_exploder(item)
+            self.meta_list.set(meta)
+            self.data_headings_list.set(data_hdgs)
+            self.data_dict = data_dict
+            self.info_text.set('Please select the name of the feature from the Feature Properties list')
+        else:
+            self.info_text.set('There is no item selected.')
+            pass
+
+    def geoj_exploder(self, gj_obj):
+        l1 = [(k,v) for k,v in gj_obj.items()]
+        i = gj_obj['features'][0]['properties']
+        l2 = list(i.keys())
+        d = i
+        return [l1, l2, d]
 
     def send_to_gis(self):
-        #TODO pass gis_stack to the gisGUI, with names parsed properly
-        pass
+        #TODO add check to see if feature name is highlighted
+        #TODO add item to hold best name of feature
+        if self.data_item.get() == '':
+            self.info_text.set('Please highlight the feature name and send again:')
+            pass
+        else:
+            item = self.gj_stack[self.selected_item.get()]
+            self.gis_stack.append(item)
 
     def load_params(self):
         for child, i in zip(self.display_frame.winfo_children(), self.params_list):
@@ -307,7 +382,7 @@ class loadingGUI():
         self.load_params()
 
     def fetch_geojson(self):
-        #TODO Set styles to show when data is loading
+        #TODO Set styles to show when gj_stack is loading
         btn = self.button_Fetch
         btn.configure(style = 'Wait.TButton')
         self.param1.set(self.base_params['host'])
@@ -325,12 +400,11 @@ class loadingGUI():
         self.base_params['filter_values'] = self.param7.get()
         gj = self.get_geojson(self.base_params)
 
-        # create a stack of the geojson objects, only storing each one once
+        # create a out_stack of the geojson objects, only storing each one once
         self.gj_stack[self.base_params['layer']] = gj
         self.update_geoj_cb(self.gj_stack)
 
     def update_geoj_cb(self, adict):
-        for i in adict.keys(): print(i)
         self.geoj_cb['values'] = [i for i in adict.keys()]
         self.geoj_cb.state(['!disabled', 'readonly'])
 
@@ -428,7 +502,7 @@ class loadingGUI():
             response = response.decode()
 
             #
-            # Geoserver only sends valid data in the requested format, in our case GeoJSON, so if we get a response back in
+            # Geoserver only sends valid gj_stack in the requested format, in our case GeoJSON, so if we get a response back in
             # XML format we know that we have an error. We do minimal parsing on the xml to extract the error text and raise
             # an exception based on it.
             #

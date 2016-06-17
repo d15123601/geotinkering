@@ -24,7 +24,7 @@ countycents = collections.defaultdict(str)
 county_town ={}
 
 places = get_data_from_geoserver(SERVER, DBASE1)
-places_list = []
+places_list = []+
 
 for feature in places['features']:
     point = geometry.Point(float(feature['geometry']['coordinates'][0]), float(feature['geometry']['coordinates'][1]))

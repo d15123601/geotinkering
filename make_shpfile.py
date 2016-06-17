@@ -39,7 +39,7 @@ def make_a_shapefile(source, *dest):
         print('This is a FC')
 
     if len(source["features"]):
-        print('There is data')
+        print('There is gj_stack')
 
     if isinstance(source, list):
         pass
